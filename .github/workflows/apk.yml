@@ -3,6 +3,8 @@ on:
   push: { branches: [main] }
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -32,3 +34,10 @@ jobs:
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with: { name: motor-app-apk, path: build/app/outputs/flutter-apk/app-release.apk }
+      - name: Publicar APK na Release "ultimo" (link fixo para baixar no celular)
+        if: github.event_name != 'pull_request'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk motor-app.apk
+          gh release delete ultimo --yes --cleanup-tag || true
+          gh release create ultimo motor-app.apk --prerelease --title "APK mais recente" --notes "Gerado automaticamente a cada push na main. Baixe motor-app.apk e instale (permita instalar de fonte desconhecida)."
