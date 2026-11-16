@@ -1,0 +1,26 @@
+name: motor_app
+description: Casca Flutter (WebView) do Motor - editor e jogos 2D no celular.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: ^4.9.0
+  webview_flutter_android: ^3.16.0
+  mime: ^1.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # ASSETS-WEB-INICIO (gerado por tool/gerar_assets.sh a partir de assets/web; o Flutter nao entra em subpastas sozinho)
+  assets:
+    - assets/web/
+  # ASSETS-WEB-FIM
