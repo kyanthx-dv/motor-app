@@ -24,7 +24,7 @@ jobs:
           rm -rf android && cp -r ../gerado/android android
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application android:usesCleartextTraffic="true"#' "$M"
-          sed -i 's#android:label="[^"]*"#android:label="Motor"#' "$M"
+          sed -i 's#android:label="[^"]*"#android:label="Blocky"#' "$M"
       - name: Desligar lint vital (o lint do Android quebra ao ler o plugin da WebView; nao afeta o APK)
         run: |
           mkdir -p ~/.gradle/init.d
