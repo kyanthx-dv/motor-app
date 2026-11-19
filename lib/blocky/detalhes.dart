@@ -8,10 +8,9 @@ const _ouro = Color(0xFFFBBF24);
 
 /// Pagina com conteudo no topo + aba de comentarios + campo fixo embaixo (base de Post e Asset).
 class _Base extends StatefulWidget {
-  const _Base({required this.topo, required this.comentarios, this.sobreTopo});
+  const _Base({required this.topo, required this.comentarios});
   final List<Widget> topo;
   final List<Comentario> comentarios;
-  final Widget? sobreTopo;
 
   @override
   State<_Base> createState() => _BaseState();
