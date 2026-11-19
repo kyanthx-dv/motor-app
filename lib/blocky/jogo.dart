@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'abas.dart';
+import 'extras.dart';
 import 'dados.dart';
 import 'widgets.dart';
 
@@ -18,51 +18,99 @@ class JogoPagina extends StatefulWidget {
 class _JogoPaginaState extends State<JogoPagina> {
   bool _curtiu = false;
   bool _fav = false;
+  final _campo = TextEditingController();
+  late final List<Comentario> _coments = List.of(widget.jogo.comentarios);
+
+  @override
+  void dispose() {
+    _campo.dispose();
+    super.dispose();
+  }
+
+  Widget _acao(IconData i, String n, VoidCallback f, {Color? cor}) => InkWell(
+        onTap: f,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          child: Column(children: [Icon(i, size: 34, color: cor), const SizedBox(height: 2), Text(n, style: const TextStyle(color: Cores.texto2))]),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     final j = widget.jogo;
     return Scaffold(
-      appBar: AppBar(title: Text(j.titulo)),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
-        AspectRatio(aspectRatio: 16 / 9, child: Capa(cor1: j.cor1, cor2: j.cor2, icone: j.icone, tamanhoIcone: 64)),
-        const SizedBox(height: 12),
-        Text(j.titulo, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        Text('por @${j.autor}', style: const TextStyle(color: Cores.texto2)),
-        const SizedBox(height: 8),
-        Wrap(spacing: 14, children: [
-          Estatistica(Icons.visibility_outlined, '${abreviar(j.visitas)} visitas'),
-          Estatistica(Icons.thumb_up_alt_outlined, abreviar(j.curtidas + (_curtiu ? 1 : 0))),
-          Estatistica(Icons.bookmark_border, abreviar(j.favoritos + (_fav ? 1 : 0))),
-          Estatistica(j.orientacao == Orientacao.retrato ? Icons.stay_current_portrait : Icons.stay_current_landscape, rotuloOrientacao(j.orientacao)),
-        ]),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 52,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: Cores.verde, foregroundColor: Colors.black),
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Jogar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j))),
+      body: Column(children: [
+        Expanded(
+          child: ListView(padding: EdgeInsets.zero, children: [
+            Container(
+              height: 340,
+              decoration: BoxDecoration(gradient: LinearGradient(colors: [j.cor1.withAlpha(180), Cores.fundo], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+              child: SafeArea(
+                child: Column(children: [
+                  Row(children: [IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Icons.more_horiz), onPressed: () => emBreve(context, 'Opções'))]),
+                  SizedBox(width: 130, height: 130, child: Capa(cor1: j.cor1, cor2: j.cor2, icone: j.icone, tamanhoIcone: 56, raio: 20)),
+                  const SizedBox(height: 10),
+                  Text(j.titulo, style: const TextStyle(fontSize: 22)),
+                  Text('${abreviar(j.visitas)} visitas · ${rotuloOrientacao(j.orientacao)}', style: const TextStyle(color: Cores.texto2)),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: 240,
+                    height: 48,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
+                      icon: const Icon(Icons.play_arrow, size: 28),
+                      label: const Text('Jogar', style: TextStyle(fontSize: 18)),
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j))),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  CircleAvatar(radius: 24, child: Text(j.autor[0].toUpperCase())),
+                  const SizedBox(width: 10),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(j.autor, style: const TextStyle(fontSize: 16)), const Text('Dono · Team Create no futuro', style: TextStyle(color: Cores.texto2, fontSize: 12))])),
+                  const BotaoSeguir(),
+                ]),
+                const SizedBox(height: 14),
+                Text(j.descricao),
+                const SizedBox(height: 14),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                  _acao(_curtiu ? Icons.favorite : Icons.favorite_border, abreviar(j.curtidas + (_curtiu ? 1 : 0)), () => setState(() => _curtiu = !_curtiu), cor: _curtiu ? Colors.redAccent : null),
+                  _acao(_fav ? Icons.star : Icons.star_border, abreviar(j.favoritos + (_fav ? 1 : 0)), () => setState(() => _fav = !_fav), cor: _fav ? const Color(0xFFFBBF24) : null),
+                  _acao(Icons.volunteer_activism_outlined, 'Doar', () => emBreve(context, 'Doações')),
+                ]),
+                const Divider(),
+                Text('${_coments.length} comentários', style: const TextStyle(fontSize: 18)),
+                if (_coments.isEmpty) const Padding(padding: EdgeInsets.all(28), child: Center(child: Text('Vazio', style: TextStyle(color: Cores.texto2)))),
+                for (final c in _coments) ListTile(contentPadding: EdgeInsets.zero, leading: CircleAvatar(radius: 18, child: Text(c.autor[0].toUpperCase())), title: Text(c.autor, style: const TextStyle(color: Cores.texto2, fontSize: 13)), subtitle: Text(c.texto, style: const TextStyle(fontSize: 15))),
+              ]),
+            ),
+          ]),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(12, 8, 12, 8 + MediaQuery.of(context).viewInsets.bottom),
+            child: Row(children: [
+              Expanded(child: TextField(controller: _campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
+              const SizedBox(width: 8),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF8A00), minimumSize: const Size(72, 48)),
+                onPressed: () {
+                  final t = _campo.text.trim();
+                  if (t.isEmpty) return;
+                  setState(() => _coments.add(Comentario('você', t)));
+                  _campo.clear();
+                },
+                child: const Text('Enviar'),
+              ),
+            ]),
           ),
         ),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(child: OutlinedButton.icon(onPressed: () => setState(() => _curtiu = !_curtiu), icon: Icon(_curtiu ? Icons.thumb_up : Icons.thumb_up_alt_outlined), label: const Text('Curtir'))),
-          const SizedBox(width: 8),
-          Expanded(child: OutlinedButton.icon(onPressed: () => setState(() => _fav = !_fav), icon: Icon(_fav ? Icons.bookmark : Icons.bookmark_border), label: const Text('Favoritar'))),
-        ]),
-        const SizedBox(height: 16),
-        const Text('Sobre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Text(j.descricao, style: const TextStyle(color: Cores.texto2)),
-        const SizedBox(height: 16),
-        const Text('Criadores', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        ListTile(contentPadding: EdgeInsets.zero, leading: CircleAvatar(child: Text(j.autor[0].toUpperCase())), title: Text('@${j.autor}'), subtitle: const Text('Dono · equipe (Team Create) no futuro')),
-        const SizedBox(height: 4),
-        OutlinedButton.icon(onPressed: () => emBreve(context, 'Doações'), icon: const Icon(Icons.volunteer_activism), label: const Text('Doar ao criador')),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(onPressed: () => abrirComentarios(context, j.comentarios), icon: const Icon(Icons.chat_bubble_outline), label: Text('Comentários (${j.comentarios.length})')),
       ]),
     );
   }

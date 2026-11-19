@@ -5,7 +5,7 @@ import 'dados.dart';
 import 'jogo.dart';
 import 'widgets.dart';
 
-enum _Tipo { jogos, assets, pessoas, posts }
+enum _Tipo { jogos, assets, posts, pessoas }
 
 class BuscaTela extends StatefulWidget {
   const BuscaTela({super.key});
@@ -26,9 +26,48 @@ class _BuscaTelaState extends State<BuscaTela> {
 
   bool _casa(String s) => s.toLowerCase().contains(_campo.text.trim().toLowerCase());
 
+  static const _historico = ['soccer', 'haxball', 'physics', 'física', 'rpg'];
+  static const _alta = [('plataforma', 'Em alta'), ('corrida', 'Em alta'), ('rpg', 'Novo'), ('puzzle', 'Em alta'), ('pixel art', ''), ('terror', 'Em alta')];
+
+  Widget _inicio() => Scaffold(
+        appBar: AppBar(
+          titleSpacing: 0,
+          title: TextField(controller: _campo, autofocus: true, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Buscar', prefixIcon: Icon(Icons.search))),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar'))],
+        ),
+        body: ListView(padding: const EdgeInsets.all(16), children: [
+          const Row(children: [Text('Histórico', style: TextStyle(fontSize: 18)), Spacer(), Icon(Icons.delete_outline, color: Cores.texto2)]),
+          const SizedBox(height: 10),
+          Wrap(spacing: 10, runSpacing: 10, children: [for (final h in _historico) ActionChip(label: Text(h), onPressed: () => setState(() => _campo.text = h))]),
+          const SizedBox(height: 24),
+          const Text('Em alta', style: TextStyle(fontSize: 18)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 24, runSpacing: 4, children: [
+            for (final a in _alta)
+              InkWell(
+                onTap: () => setState(() => _campo.text = a.$1),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(a.$1, style: const TextStyle(fontSize: 18)),
+                    if (a.$2.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(color: a.$2 == 'Novo' ? const Color(0xFF0EA5FF) : const Color(0xFFFF8A00), borderRadius: BorderRadius.circular(4)),
+                        child: Text(a.$2, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                      ),
+                  ]),
+                ),
+              ),
+          ]),
+        ]),
+      );
+
   @override
   Widget build(BuildContext context) {
     final q = _campo.text.trim();
+    if (q.isEmpty) return _inicio();
     final widgets = <Widget>[];
     switch (_tipo) {
       case _Tipo.jogos:
@@ -86,7 +125,7 @@ class _BuscaTelaState extends State<BuscaTela> {
               Padding(
                 padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
                 child: ChoiceChip(
-                  label: Text(switch (t) { _Tipo.jogos => 'Jogos', _Tipo.assets => 'Assets', _Tipo.pessoas => 'Pessoas', _Tipo.posts => 'Posts' }),
+                  label: Text(switch (t) { _Tipo.jogos => 'Jogos', _Tipo.assets => 'Assets', _Tipo.posts => 'Posts', _Tipo.pessoas => 'Pessoas' }),
                   selected: _tipo == t,
                   onSelected: (_) => setState(() => _tipo = t),
                 ),

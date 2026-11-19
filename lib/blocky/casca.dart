@@ -14,13 +14,8 @@ class Casca extends StatefulWidget {
 class _CascaState extends State<Casca> {
   int _aba = 0; // 0 Jogos, 1 Assets, 2 Posts, 3 Perfil
 
-  static const _itens = <(IconData, String)>[
-    (Icons.sports_esports_outlined, 'Jogos'),
-    (Icons.inventory_2_outlined, 'Assets'),
-    (Icons.add, ''),
-    (Icons.dynamic_feed_outlined, 'Posts'),
-    (Icons.person_outline, 'Perfil'),
-  ];
+  static const _icones = <IconData>[Icons.home_outlined, Icons.shopping_bag_outlined, Icons.add, Icons.public, Icons.person_outline];
+  static const _icones2 = <IconData>[Icons.home, Icons.shopping_bag, Icons.add, Icons.public, Icons.person];
 
   void _tocar(int i) {
     if (i == 2) {
@@ -39,13 +34,22 @@ class _CascaState extends State<Casca> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: ativo,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         onDestinationSelected: _tocar,
         destinations: [
-          for (var i = 0; i < _itens.length; i++)
+          for (var i = 0; i < _icones.length; i++)
             if (i == 2)
-              const NavigationDestination(icon: CircleAvatar(radius: 20, child: Icon(Icons.add, size: 26)), label: 'Criar')
+              NavigationDestination(
+                icon: Container(
+                  width: 54,
+                  height: 36,
+                  decoration: BoxDecoration(color: const Color(0xFF0EA5FF), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.add, color: Colors.white, size: 28),
+                ),
+                label: 'Criar',
+              )
             else
-              NavigationDestination(icon: Icon(_itens[i].$1), label: _itens[i].$2),
+              NavigationDestination(icon: Icon(_icones[i]), selectedIcon: Icon(_icones2[i]), label: '$i'),
         ],
       ),
     );

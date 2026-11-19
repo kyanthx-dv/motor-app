@@ -41,18 +41,45 @@ Future<void> main() async {
   runApp(const BlockyApp());
 }
 
-class BlockyApp extends StatelessWidget {
+class BlockyApp extends StatefulWidget {
   const BlockyApp({super.key});
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
-        valueListenable: temaEscuro,
-        builder: (_, escuro, __) => MaterialApp(
-          key: ValueKey<bool>(escuro), // recria as telas para pegar as novas cores
-          title: 'Blocky',
-          debugShowCheckedModeBanner: false,
-          theme: temaBlocky(escuro),
-          home: const EntradaTela(),
-        ),
+  State<BlockyApp> createState() => _BlockyAppState();
+}
+
+class _BlockyAppState extends State<BlockyApp> {
+  @override
+  void initState() {
+    super.initState();
+    temaEscuro.addListener(_trocou);
+  }
+
+  @override
+  void dispose() {
+    temaEscuro.removeListener(_trocou);
+    super.dispose();
+  }
+
+  // Troca o tema SEM recriar o Navigator (assim a sessao/telas abertas continuam).
+  // As cores vem de getters (Cores.*), entao forcamos reconstruir toda a arvore.
+  void _trocou() {
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      void refazer(Element e) {
+        e.markNeedsBuild();
+        e.visitChildren(refazer);
+      }
+
+      (context as Element).visitChildren(refazer);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Blocky',
+        debugShowCheckedModeBanner: false,
+        theme: temaBlocky(temaEscuro.value),
+        home: const EntradaTela(),
       );
 }
