@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'editor_web.dart';
 import 'projeto.dart';
 import 'widgets.dart';
 
