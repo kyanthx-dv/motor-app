@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mime/mime.dart';
 import 'blocky/entrada.dart';
+import 'blocky/projetos.dart';
 import 'blocky/servidor.dart';
 import 'blocky/widgets.dart';
 
@@ -38,6 +39,7 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final servidor = await iniciarServidor();
   portaLocal = servidor.port;
+  await RepositorioProjetos.instancia.carregar();
   runApp(const BlockyApp());
 }
 

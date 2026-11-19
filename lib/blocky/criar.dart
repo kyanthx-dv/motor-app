@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
-import 'editor_web.dart';
+import 'projeto.dart';
 import 'widgets.dart';
 
 void abrirMenuCriar(BuildContext context) {
-  Widget botao(BuildContext ctx, IconData i, Color cor, String nome, Widget destino) => Expanded(child: InkWell(
+  Widget botao(BuildContext ctx, IconData i, Color cor, String nome, Widget? destino) => Expanded(child: InkWell(
         borderRadius: BorderRadius.circular(80),
         onTap: () {
           Navigator.pop(ctx);
-          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => destino));
+          if (destino == null) {
+            novoJogo(context);
+          } else {
+            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => destino));
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(8),
@@ -27,7 +31,7 @@ void abrirMenuCriar(BuildContext context) {
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(children: [
-            botao(ctx, Icons.sports_esports, const Color(0xFF0EA5FF), 'Jogo', const EditorWebTela()),
+            botao(ctx, Icons.sports_esports, const Color(0xFF0EA5FF), 'Jogo', null),
             botao(ctx, Icons.shopping_bag, const Color(0xFFFF7A33), 'Assets', const NovoItemTela(pfp: false)),
             botao(ctx, Icons.face, const Color(0xFF22C55E), 'PFP', const NovoItemTela(pfp: true)),
             botao(ctx, Icons.article, const Color(0xFFFF5C7A), 'Post', const NovoPostTela()),

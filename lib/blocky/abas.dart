@@ -7,6 +7,8 @@ import 'entrada.dart';
 import 'detalhes.dart';
 import 'extras.dart';
 import 'jogo.dart';
+import 'projeto.dart';
+import 'projetos.dart';
 import 'widgets.dart';
 
 const _ouro = Color(0xFFFBBF24);
@@ -351,10 +353,14 @@ class PerfilAba extends StatelessWidget {
           SliverPersistentHeader(pinned: true, delegate: _TabsFixas(TabBar(tabs: [Tab(text: 'Jogos ${meus.length}'), const Tab(text: 'Assets 4'), const Tab(text: 'Posts 9')]))),
         ],
         body: TabBarView(children: [
-          ListView(padding: const EdgeInsets.all(12), children: [
-            for (final j in meus) _LinhaJogo(j),
-            _LinhaJogo(const Jogo(id: 'rasc', titulo: 'Rascunho', autor: 'kyanthx', descricao: '', cor1: Color(0xFF38BDF8), cor2: Color(0xFF0EA5E9), icone: Icons.sports_esports, orientacao: Orientacao.qualquer, curtidas: 0, favoritos: 0, visitas: 0), rascunho: true),
-          ]),
+          ListenableBuilder(
+            listenable: RepositorioProjetos.instancia,
+            builder: (_, __) => ListView(padding: const EdgeInsets.all(12), children: [
+              for (final pr in RepositorioProjetos.instancia.projetos) _LinhaProjeto(pr),
+              for (final j in meus) _LinhaJogo(j),
+              if (RepositorioProjetos.instancia.projetos.isEmpty && meus.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Toque em ＋ > Jogo para criar o primeiro.', style: TextStyle(color: Cores.texto2)))),
+            ]),
+          ),
           const Center(child: Text('Seus assets publicados aparecem aqui.', style: TextStyle(color: Cores.texto2))),
           const Center(child: Text('Seus posts aparecem aqui.', style: TextStyle(color: Cores.texto2))),
         ]),
@@ -377,10 +383,59 @@ class _TabsFixas extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _TabsFixas old) => true;
 }
 
+class _LinhaProjeto extends StatelessWidget {
+  const _LinhaProjeto(this.p);
+  final Projeto p;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(14)),
+        child: Toque(
+          aoTocar: () => _ir(context, ProjetoTela(projeto: p)),
+          child: Row(children: [
+            const SizedBox(width: 90, height: 90, child: Capa(cor1: Color(0xFF38BDF8), cor2: Color(0xFF0EA5E9), icone: Icons.sports_esports, tamanhoIcone: 36)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Flexible(child: Text(p.nome, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18))),
+                  const SizedBox(width: 8),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFFF5C7A), borderRadius: BorderRadius.circular(6)), child: const Text('Em dev', style: TextStyle(fontSize: 12, color: Colors.white))),
+                ]),
+                Text('${p.cenas.length} ${p.cenas.length == 1 ? 'cena' : 'cenas'} · ${rotuloOrientacao(p.orientacao)}', style: const TextStyle(color: Cores.texto2)),
+              ]),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text('Excluir "${p.nome}"?'),
+                  content: const Text('Isso apaga o projeto deste aparelho.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                      onPressed: () {
+                        RepositorioProjetos.instancia.apagar(p);
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Excluir'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ]),
+        ),
+      );
+}
+
 class _LinhaJogo extends StatelessWidget {
-  const _LinhaJogo(this.j, {this.rascunho = false});
+  const _LinhaJogo(this.j);
   final Jogo j;
-  final bool rascunho;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -388,7 +443,7 @@ class _LinhaJogo extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(14)),
         child: InkWell(
-          onTap: () => rascunho ? _ir(context, const EditorWebTela()) : _ir(context, JogoPagina(jogo: j)),
+          onTap: () => _ir(context, JogoPagina(jogo: j)),
           child: Row(children: [
             SizedBox(width: 90, height: 90, child: Capa(cor1: j.cor1, cor2: j.cor2, icone: j.icone, tamanhoIcone: 36)),
             const SizedBox(width: 12),
@@ -399,8 +454,8 @@ class _LinhaJogo extends StatelessWidget {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: rascunho ? const Color(0xFFFF5C7A) : Cores.verde, borderRadius: BorderRadius.circular(6)),
-                    child: Text(rascunho ? 'Em dev' : 'Publicado', style: const TextStyle(fontSize: 12, color: Colors.white)),
+                    decoration: BoxDecoration(color: Cores.verde, borderRadius: BorderRadius.circular(6)),
+                    child: Text('Publicado', style: const TextStyle(fontSize: 12, color: Colors.white)),
                   ),
                 ]),
                 Text('${abreviar(j.visitas)} visitas', style: const TextStyle(color: Cores.texto2)),
