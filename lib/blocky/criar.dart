@@ -4,7 +4,7 @@ import 'editor_web.dart';
 import 'widgets.dart';
 
 void abrirMenuCriar(BuildContext context) {
-  Widget botao(BuildContext ctx, IconData i, Color cor, String nome, Widget destino) => InkWell(
+  Widget botao(BuildContext ctx, IconData i, Color cor, String nome, Widget destino) => Expanded(child: InkWell(
         borderRadius: BorderRadius.circular(80),
         onTap: () {
           Navigator.pop(ctx);
@@ -13,12 +13,12 @@ void abrirMenuCriar(BuildContext context) {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            CircleAvatar(radius: 40, backgroundColor: Cores.cartao2, child: Icon(i, color: cor, size: 38)),
+            CircleAvatar(radius: 30, backgroundColor: Cores.cartao2, child: Icon(i, color: cor, size: 30)),
             const SizedBox(height: 8),
-            Text(nome, style: const TextStyle(fontSize: 16)),
+            Text(nome, style: const TextStyle(fontSize: 15)),
           ]),
         ),
-      );
+      ));
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: Cores.cartao,
@@ -26,7 +26,7 @@ void abrirMenuCriar(BuildContext context) {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+          Row(children: [
             botao(ctx, Icons.sports_esports, const Color(0xFF0EA5FF), 'Jogo', const EditorWebTela()),
             botao(ctx, Icons.shopping_bag, const Color(0xFFFF7A33), 'Assets', const NovoItemTela(pfp: false)),
             botao(ctx, Icons.face, const Color(0xFF22C55E), 'PFP', const NovoItemTela(pfp: true)),

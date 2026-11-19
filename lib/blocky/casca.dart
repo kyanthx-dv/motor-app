@@ -11,7 +11,15 @@ class Casca extends StatefulWidget {
   State<Casca> createState() => _CascaState();
 }
 
-class _CascaState extends State<Casca> {
+class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 260), value: 1);
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
   int _aba = 0; // 0 Jogos, 1 Assets, 2 Posts, 3 Perfil
 
   static const _icones = <IconData>[Icons.home_outlined, Icons.shopping_bag_outlined, Icons.add, Icons.public, Icons.person_outline];
@@ -22,7 +30,9 @@ class _CascaState extends State<Casca> {
       abrirMenuCriar(context);
       return;
     }
-    setState(() => _aba = i > 2 ? i - 1 : i);
+    final n = i > 2 ? i - 1 : i;
+    if (n != _aba) _fade.forward(from: 0);
+    setState(() => _aba = n);
   }
 
   @override
@@ -30,7 +40,7 @@ class _CascaState extends State<Casca> {
     final ativo = _aba >= 2 ? _aba + 1 : _aba; // indice na barra
     return Scaffold(
       body: SafeArea(
-        child: IndexedStack(index: _aba, children: const [JogosAba(), AssetsAba(), PostsAba(), PerfilAba()]),
+        child: FadeTransition(opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut), child: IndexedStack(index: _aba, children: const [JogosAba(), AssetsAba(), PostsAba(), PerfilAba()])),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: ativo,
