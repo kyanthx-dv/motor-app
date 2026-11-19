@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'abas.dart';
+import 'detalhes.dart';
 import 'dados.dart';
 import 'jogo.dart';
 import 'widgets.dart';
@@ -86,7 +87,7 @@ class _BuscaTelaState extends State<BuscaTela> {
             title: Text(i.titulo),
             subtitle: Text('${i.pfp ? 'PFP' : 'Asset'} · @${i.autor}'),
             trailing: Text(i.preco == 0 ? 'Grátis' : '🪙 ${i.preco}'),
-            onTap: () => detalheItem(context, i),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ItemPagina(item: i))),
           ));
         }
       case _Tipo.pessoas:

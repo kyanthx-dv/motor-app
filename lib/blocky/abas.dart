@@ -4,6 +4,7 @@ import 'busca.dart';
 import 'dados.dart';
 import 'editor_web.dart';
 import 'entrada.dart';
+import 'detalhes.dart';
 import 'extras.dart';
 import 'jogo.dart';
 import 'widgets.dart';
@@ -94,7 +95,7 @@ Widget _grade(BuildContext context, List<Jogo> lista) => GridView.count(
       mainAxisSpacing: 14,
       crossAxisSpacing: 12,
       childAspectRatio: 1.25,
-      children: [for (final j in lista) CartaoJogo(jogo: j, aoTocar: () => _ir(context, JogoPagina(jogo: j)))],
+      children: [for (var i = 0; i < lista.length; i++) Aparece(indice: i, child: CartaoJogo(jogo: lista[i], aoTocar: () => _ir(context, JogoPagina(jogo: lista[i]))))],
     );
 
 class _GradeJogos extends StatelessWidget {
@@ -159,60 +160,36 @@ class _Grade extends StatelessWidget {
         crossAxisSpacing: 12,
         childAspectRatio: 0.78,
         children: [
-          for (final i in itens)
-            InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => detalheItem(context, i),
+          for (var n = 0; n < itens.length; n++)
+            Aparece(
+              indice: n,
+              child: Toque(
+              aoTocar: () => _ir(context, ItemPagina(item: itens[n])),
               child: Container(
                 decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(14)),
                 clipBehavior: Clip.antiAlias,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(child: SizedBox(width: double.infinity, child: Capa(cor1: i.cor1, cor2: i.cor2, icone: i.icone, raio: 0))),
+                  Expanded(child: SizedBox(width: double.infinity, child: Capa(cor1: itens[n].cor1, cor2: itens[n].cor2, icone: itens[n].icone, raio: 0))),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(i.titulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
+                      Text(itens[n].titulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
                       const SizedBox(height: 2),
                       Row(children: [
                         const Icon(Icons.monetization_on, color: _ouro, size: 18),
                         const SizedBox(width: 4),
-                        Text(i.preco == 0 ? 'Grátis' : '${i.preco}', style: TextStyle(color: i.preco == 0 ? Cores.verde : const Color(0xFFFF7A33), fontSize: 18)),
+                        Text(itens[n].preco == 0 ? 'Grátis' : '${itens[n].preco}', style: TextStyle(color: itens[n].preco == 0 ? Cores.verde : const Color(0xFFFF7A33), fontSize: 18)),
                       ]),
-                      Text('@${i.autor}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2, fontSize: 12)),
+                      Text('@${itens[n].autor}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2, fontSize: 12)),
                     ]),
                   ),
                 ]),
               ),
             ),
+            ),
         ],
       );
 }
-
-void detalheItem(BuildContext context, ItemLoja i) => showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Cores.cartao,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(height: 140, width: double.infinity, child: Capa(cor1: i.cor1, cor2: i.cor2, icone: i.icone, tamanhoIcone: 56)),
-          const SizedBox(height: 12),
-          Text(i.titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          Text('${i.pfp ? 'PFP' : 'Asset'} de @${i.autor}', style: const TextStyle(color: Cores.texto2)),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: FilledButton(
-              onPressed: () {
-                Navigator.pop(context);
-                emBreve(context, i.preco == 0 ? 'Baixar' : 'Compra');
-              },
-              child: Text(i.preco == 0 ? 'Obter (grátis)' : 'Comprar por ${i.preco} moedas'),
-            ),
-          ),
-        ]),
-      ),
-    );
 
 // ---------------------------------------------------------------- Comunidade (Posts)
 
@@ -244,7 +221,7 @@ class _Feed extends StatelessWidget {
   @override
   Widget build(BuildContext context) => posts.isEmpty
       ? const Center(child: Text('Nada por aqui ainda.', style: TextStyle(color: Cores.texto2)))
-      : ListView(padding: const EdgeInsets.all(12), children: [for (final p in posts) CartaoPost(post: p)]);
+      : ListView(padding: const EdgeInsets.all(12), children: [for (var i = 0; i < posts.length; i++) Aparece(indice: i, child: CartaoPost(post: posts[i]))]);
 }
 
 class CartaoPost extends StatefulWidget {
@@ -266,7 +243,9 @@ class _CartaoPostState extends State<CartaoPost> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(16)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: Toque(
+        aoTocar: () => _ir(context, PostPagina(post: p)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           CircleAvatar(radius: 22, child: Text(p.autor[0].toUpperCase())),
           const SizedBox(width: 10),
@@ -281,15 +260,16 @@ class _CartaoPostState extends State<CartaoPost> {
         Text(p.descricao, maxLines: 3, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 6),
         Row(children: [
-          IconButton(icon: Icon(_curtiu ? Icons.favorite : Icons.favorite_border, color: _curtiu ? Colors.redAccent : null), onPressed: () => setState(() => _curtiu = !_curtiu)),
+          IconButton(icon: IconeAnim(ligado: _curtiu, ligadoIcone: Icons.favorite, desligadoIcone: Icons.favorite_border, cor: Colors.redAccent), onPressed: () => setState(() => _curtiu = !_curtiu)),
           Text(abreviar(p.curtidas + (_curtiu ? 1 : 0))),
           const Spacer(),
-          IconButton(icon: Icon(_fav ? Icons.star : Icons.star_border, color: _fav ? _ouro : null), onPressed: () => setState(() => _fav = !_fav)),
+          IconButton(icon: IconeAnim(ligado: _fav, ligadoIcone: Icons.star, desligadoIcone: Icons.star_border, cor: _ouro), onPressed: () => setState(() => _fav = !_fav)),
           const Spacer(),
           IconButton(icon: const Icon(Icons.chat_bubble_outline), onPressed: () => abrirComentarios(context, p.comentarios)),
           Text('${p.comentarios.length}'),
         ]),
       ]),
+      ),
     );
   }
 }

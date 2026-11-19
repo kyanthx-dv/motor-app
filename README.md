@@ -1,11 +1,17 @@
-# motor-app
+# motor-app (Blocky)
 
-Casca Flutter (WebView) do [Motor](https://github.com/kyanthx-dv/motor): abre o editor e os jogos no celular.
+App Flutter do **Blocky**: rede social + editor de jogos 2D, em cima da engine [Motor](https://github.com/kyanthx-dv/motor).
 
-**Como funciona:** o app empacota o motor em `assets/web`, sobe um servidor HTTP local (127.0.0.1) e mostra `editor/index.html` numa WebView. O Motor continua sendo web puro; o app so o hospeda.
+## Estrutura
+- `lib/main.dart`: inicia o servidor local (serve o Motor em `assets/web`) e abre o app.
+- `lib/blocky/`: telas e widgets (dados de exemplo em `dados.dart`; sistemas reais entram depois, com segurança).
+  - `entrada.dart` login e boas-vindas · `casca.dart` abas · `abas.dart` Início/Loja/Comunidade/Perfil
+  - `busca.dart` · `jogo.dart` página e player · `detalhes.dart` post e asset · `extras.dart` carteira/notificações/chat · `criar.dart`
+  - `editor_web.dart`: editor do PC em WebView (**provisório**; o editor de celular será nativo em Flutter).
+- `tool/`: scripts para copiar o Motor e gerar assets.
 
-**Build:** o GitHub Actions (`.github/workflows/apk.yml`) baixa o motor, gera `android/`, roda `flutter analyze` e `flutter build apk --release`. O APK sai em *Actions > ultima execucao > Artifacts > motor-app-apk*.
+## Build
+GitHub Actions (`.github/workflows/apk.yml`): analisa e gera o APK, publicado na release **`ultimo`** (único APK, sempre o mais recente). Pode rodar manualmente em *Actions > APK > Run workflow*.
 
-**Local (se tiver Flutter):** `flutter create --platforms=android .` (so uma vez), `tool/copiar_motor.sh ../motor && tool/gerar_assets.sh`, `flutter run`.
-
-**Proximos passos:** abrir/salvar projetos no armazenamento do aparelho (downloads e seletor de arquivo da WebView), icone e nome, atualizacao do pacote do motor sem reinstalar o app.
+## Fluxo
+Uma branch por tarefa, PR para `main`, merge só com o CI verde (a branch é apagada depois).
