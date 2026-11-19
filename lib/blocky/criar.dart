@@ -4,46 +4,41 @@ import 'editor_web.dart';
 import 'widgets.dart';
 
 void abrirMenuCriar(BuildContext context) {
+  Widget botao(BuildContext ctx, IconData i, Color cor, String nome, Widget destino) => InkWell(
+        borderRadius: BorderRadius.circular(80),
+        onTap: () {
+          Navigator.pop(ctx);
+          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => destino));
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            CircleAvatar(radius: 40, backgroundColor: Cores.cartao2, child: Icon(i, color: cor, size: 38)),
+            const SizedBox(height: 8),
+            Text(nome, style: const TextStyle(fontSize: 16)),
+          ]),
+        ),
+      );
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: Cores.cartao,
     builder: (ctx) => SafeArea(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Padding(padding: EdgeInsets.all(14), child: Text('Criar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
-        ListTile(
-          leading: const Icon(Icons.sports_esports),
-          title: const Text('Criar jogo'),
-          subtitle: const Text('Abre o editor (provisório)'),
-          onTap: () {
-            Navigator.pop(ctx);
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EditorWebTela()));
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.article_outlined),
-          title: const Text('Criar post'),
-          onTap: () {
-            Navigator.pop(ctx);
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoPostTela()));
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.inventory_2_outlined),
-          title: const Text('Publicar asset'),
-          onTap: () {
-            Navigator.pop(ctx);
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoItemTela(pfp: false)));
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.face),
-          title: const Text('Publicar PFP'),
-          onTap: () {
-            Navigator.pop(ctx);
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoItemTela(pfp: true)));
-          },
-        ),
-      ]),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            botao(ctx, Icons.sports_esports, const Color(0xFF0EA5FF), 'Jogo', const EditorWebTela()),
+            botao(ctx, Icons.shopping_bag, const Color(0xFFFF7A33), 'Assets', const NovoItemTela(pfp: false)),
+            botao(ctx, Icons.face, const Color(0xFF22C55E), 'PFP', const NovoItemTela(pfp: true)),
+            botao(ctx, Icons.article, const Color(0xFFFF5C7A), 'Post', const NovoPostTela()),
+          ]),
+          const SizedBox(height: 18),
+          InkWell(
+            onTap: () => Navigator.pop(ctx),
+            child: Container(width: 64, height: 40, decoration: BoxDecoration(color: const Color(0xFFFF5C7A), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.close, color: Colors.white)),
+          ),
+        ]),
+      ),
     ),
   );
 }
