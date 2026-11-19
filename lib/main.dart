@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mime/mime.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'blocky/entrada.dart';
+import 'blocky/servidor.dart';
+import 'blocky/widgets.dart';
 
 /// Servidor HTTP local (127.0.0.1, porta livre) que serve o motor empacotado em assets/web.
 /// Por que: Workers, service worker e fetch do editor precisam de origem http, nao file://.
@@ -36,61 +35,24 @@ Future<HttpServer> iniciarServidor() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final servidor = await iniciarServidor();
-  runApp(MotorApp(porta: servidor.port));
+  portaLocal = servidor.port;
+  runApp(const BlockyApp());
 }
 
-class MotorApp extends StatelessWidget {
-  const MotorApp({super.key, required this.porta});
-  final int porta;
+class BlockyApp extends StatelessWidget {
+  const BlockyApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Motor',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData.dark(useMaterial3: true),
-        home: Tela(porta: porta),
-      );
-}
-
-class Tela extends StatefulWidget {
-  const Tela({super.key, required this.porta});
-  final int porta;
-
-  @override
-  State<Tela> createState() => _TelaState();
-}
-
-class _TelaState extends State<Tela> {
-  late final WebViewController _web;
-
-  @override
-  void initState() {
-    super.initState();
-    _web = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF111827))
-      ..setOnConsoleMessage((m) => debugPrint('[web] ${m.message}'))
-      ..loadRequest(Uri.parse('http://127.0.0.1:${widget.porta}/editor/index.html'));
-    final p = _web.platform;
-    if (p is AndroidWebViewController) {
-      p.setMediaPlaybackRequiresUserGesture(false); // sons do jogo sem exigir toque previo
-      if (kDebugMode) AndroidWebViewController.enableDebugging(true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) async {
-          if (didPop) return;
-          if (await _web.canGoBack()) {
-            await _web.goBack();
-          } else {
-            await SystemNavigator.pop();
-          }
-        },
-        child: Scaffold(body: SafeArea(child: WebViewWidget(controller: _web))),
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+        valueListenable: temaEscuro,
+        builder: (_, escuro, __) => MaterialApp(
+          key: ValueKey<bool>(escuro), // recria as telas para pegar as novas cores
+          title: 'Blocky',
+          debugShowCheckedModeBanner: false,
+          theme: temaBlocky(escuro),
+          home: const EntradaTela(),
+        ),
       );
 }
