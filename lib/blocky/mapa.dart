@@ -1,38 +1,121 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'cena_config.dart';
 import 'projetos.dart';
 import 'widgets.dart';
 
+enum Arte { grama, terra, pedra, agua, areia, icone }
+
 /// Item da paleta de exemplo (depois vira o catalogo real de assets da engine).
 class ItemPaleta {
-  const ItemPaleta(this.nome, this.aba, this.cor, this.icone);
+  const ItemPaleta(this.nome, this.aba, this.arte, this.cor, [this.icone = Icons.circle]);
   final String nome;
   final String aba; // Tile | Deco | Ator | Objeto
+  final Arte arte;
   final Color cor;
   final IconData icone;
 }
 
 const paleta = <ItemPaleta>[
-  ItemPaleta('Grama', 'Tile', Color(0xFF65A30D), Icons.grass),
-  ItemPaleta('Terra', 'Tile', Color(0xFF92400E), Icons.landscape),
-  ItemPaleta('Pedra', 'Tile', Color(0xFF64748B), Icons.view_module),
-  ItemPaleta('Água', 'Tile', Color(0xFF0EA5E9), Icons.water),
-  ItemPaleta('Areia', 'Tile', Color(0xFFEAB308), Icons.beach_access),
-  ItemPaleta('Árvore', 'Deco', Color(0xFF15803D), Icons.park),
-  ItemPaleta('Flor', 'Deco', Color(0xFFEC4899), Icons.local_florist),
-  ItemPaleta('Nuvem', 'Deco', Color(0xFF94A3B8), Icons.cloud),
-  ItemPaleta('Herói', 'Ator', Color(0xFFF59E0B), Icons.face),
-  ItemPaleta('Slime', 'Ator', Color(0xFF22D3EE), Icons.bug_report),
-  ItemPaleta('Fantasma', 'Ator', Color(0xFFA78BFA), Icons.sentiment_very_dissatisfied),
-  ItemPaleta('Baú', 'Objeto', Color(0xFFB45309), Icons.inventory_2),
-  ItemPaleta('Moeda', 'Objeto', Color(0xFFFBBF24), Icons.monetization_on),
-  ItemPaleta('Bandeira', 'Objeto', Color(0xFFEF4444), Icons.flag),
+  ItemPaleta('Grama', 'Tile', Arte.grama, Color(0xFF5DBB2F)),
+  ItemPaleta('Terra', 'Tile', Arte.terra, Color(0xFFB4713A)),
+  ItemPaleta('Pedra', 'Tile', Arte.pedra, Color(0xFF9AA5B1)),
+  ItemPaleta('Água', 'Tile', Arte.agua, Color(0xFF3BA7F0)),
+  ItemPaleta('Areia', 'Tile', Arte.areia, Color(0xFFF2D58A)),
+  ItemPaleta('Árvore', 'Deco', Arte.icone, Color(0xFF2E9E4F), Icons.park),
+  ItemPaleta('Flor', 'Deco', Arte.icone, Color(0xFFEC4899), Icons.local_florist),
+  ItemPaleta('Nuvem', 'Deco', Arte.icone, Color(0xFF94A3B8), Icons.cloud),
+  ItemPaleta('Herói', 'Ator', Arte.icone, Color(0xFFF59E0B), Icons.face),
+  ItemPaleta('Slime', 'Ator', Arte.icone, Color(0xFF22D3EE), Icons.bug_report),
+  ItemPaleta('Fantasma', 'Ator', Arte.icone, Color(0xFFA78BFA), Icons.sentiment_very_dissatisfied),
+  ItemPaleta('Baú', 'Objeto', Arte.icone, Color(0xFFB45309), Icons.inventory_2),
+  ItemPaleta('Moeda', 'Objeto', Arte.icone, Color(0xFFFBBF24), Icons.monetization_on),
+  ItemPaleta('Bandeira', 'Objeto', Arte.icone, Color(0xFFEF4444), Icons.flag),
 ];
 
 const _abas = ['Tile', 'Deco', 'Ator', 'Objeto'];
 
-enum _Modo { mover, pintar, apagar }
+/// Desenha um item dentro de [r]. Tiles sao desenhados por codigo (sem arquivo de imagem), encaixam sem frestas.
+void pintarItem(Canvas c, Rect r, ItemPaleta it) {
+  final u = r.width / 10; // unidade de 1/10 da celula
+  switch (it.arte) {
+    case Arte.terra:
+    case Arte.grama:
+      c.drawRect(r, Paint()..color = const Color(0xFFB4713A));
+      final manchas = Paint()..color = const Color(0xFF8E5528);
+      for (final p in const [Offset(2, 5), Offset(6, 4), Offset(4, 8), Offset(8, 7), Offset(1, 9), Offset(7, 9.2)]) {
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(r.left + p.dx * u, r.top + p.dy * u, 1.4 * u, 0.8 * u), Radius.circular(u * 0.3)), manchas);
+      }
+      if (it.arte == Arte.grama) {
+        c.drawRect(Rect.fromLTWH(r.left, r.top, r.width, 2.6 * u), Paint()..color = const Color(0xFF5DBB2F));
+        final p = Paint()..color = const Color(0xFF5DBB2F);
+        for (var i = 0; i < 5; i++) {
+          c.drawCircle(Offset(r.left + (i * 2 + 1) * u, r.top + 2.6 * u), 1 * u, p);
+        }
+        c.drawRect(Rect.fromLTWH(r.left, r.top, r.width, 0.7 * u), Paint()..color = const Color(0xFF86D94F));
+      }
+    case Arte.pedra:
+      c.drawRect(r, Paint()..color = it.cor);
+      final l = Paint()
+        ..color = const Color(0xFF6B7684)
+        ..strokeWidth = u * 0.35;
+      c.drawLine(Offset(r.left, r.top + 5 * u), Offset(r.right, r.top + 5 * u), l);
+      c.drawLine(Offset(r.left + 5 * u, r.top), Offset(r.left + 5 * u, r.top + 5 * u), l);
+      c.drawLine(Offset(r.left + 2.5 * u, r.top + 5 * u), Offset(r.left + 2.5 * u, r.bottom), l);
+      c.drawLine(Offset(r.left + 7.5 * u, r.top + 5 * u), Offset(r.left + 7.5 * u, r.bottom), l);
+    case Arte.agua:
+      c.drawRect(r, Paint()..color = it.cor);
+      final w = Paint()
+        ..color = Colors.white.withAlpha(200)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = u * 0.5
+        ..strokeCap = StrokeCap.round;
+      for (final y in const [3.0, 7.0]) {
+        final path = Path()
+          ..moveTo(r.left + 1 * u, r.top + y * u)
+          ..quadraticBezierTo(r.left + 3 * u, r.top + (y - 1.2) * u, r.left + 5 * u, r.top + y * u)
+          ..quadraticBezierTo(r.left + 7 * u, r.top + (y + 1.2) * u, r.left + 9 * u, r.top + y * u);
+        c.drawPath(path, w);
+      }
+    case Arte.areia:
+      c.drawRect(r, Paint()..color = it.cor);
+      final d = Paint()..color = const Color(0xFFD9B865);
+      for (final p in const [Offset(2, 2), Offset(6, 3), Offset(4, 6), Offset(8, 7), Offset(2, 8)]) {
+        c.drawCircle(Offset(r.left + p.dx * u, r.top + p.dy * u), 0.45 * u, d);
+      }
+    case Arte.icone:
+      final centro = r.center;
+      c.drawCircle(centro, r.width * 0.42, Paint()..color = it.cor);
+      c.drawCircle(centro, r.width * 0.42, Paint()
+        ..color = Colors.black.withAlpha(90)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = u * 0.35);
+      final tp = TextPainter(
+        text: TextSpan(text: String.fromCharCode(it.icone.codePoint), style: TextStyle(fontFamily: it.icone.fontFamily, package: it.icone.fontPackage, fontSize: r.width * 0.55, color: Colors.white)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(c, centro - Offset(tp.width / 2, tp.height / 2));
+  }
+}
+
+class _Miniatura extends CustomPainter {
+  _Miniatura(this.it);
+  final ItemPaleta it;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final l = math.min(size.width, size.height);
+    final r = Rect.fromCenter(center: size.center(Offset.zero), width: l, height: l);
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(r, const Radius.circular(8)));
+    pintarItem(canvas, r, it);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _Miniatura old) => old.it != it;
+}
 
 class CenaTela extends StatefulWidget {
   const CenaTela({super.key, required this.projeto, required this.cena});
@@ -44,16 +127,24 @@ class CenaTela extends StatefulWidget {
 }
 
 class _CenaTelaState extends State<CenaTela> {
-  static const double _cs = 44; // tamanho da celula em pixels
-  static const double _margem = 30; // espaco para os numeros
+  static const double _cs = 40; // celula em unidades do mundo
 
   final _versao = ValueNotifier<int>(0);
-  _Modo _modo = _Modo.pintar;
+  bool _apagar = false;
+  bool _mover = false;
   int _aba = 0;
   int _sel = 0;
   bool _painelAberto = true;
-  int _dedos = 0;
-  int? _ultimo; // ultima celula pintada no arrasto (evita repetir)
+  int? _ultimo;
+
+  // camera (zoom + deslocamento), controlada a mao: 1 dedo pinta, 2 dedos movem/zoom
+  double _esc = 1;
+  Offset _desl = Offset.zero;
+  bool _ajustou = false;
+  double _escIni = 1;
+  Offset _focoIni = Offset.zero;
+  Offset _deslIni = Offset.zero;
+  int _cont = 0;
 
   Cena get c => widget.cena;
 
@@ -64,152 +155,164 @@ class _CenaTelaState extends State<CenaTela> {
     super.dispose();
   }
 
+  void _ajustar(Size s) {
+    final mw = c.largura * _cs, mh = c.altura * _cs;
+    _esc = math.min((s.width - 70) / mw, (s.height - 90) / mh).clamp(0.3, 1.6);
+    _desl = Offset((s.width - mw * _esc) / 2 + 8, (s.height - mh * _esc) / 2 - 8);
+    _ajustou = true;
+  }
+
   void _pintarEm(Offset p) {
-    if (_modo == _Modo.mover || _dedos != 1) return;
-    final x = ((p.dx - _margem) / _cs).floor();
-    final yTela = ((p.dy - 4) / _cs).floor();
-    final y = c.altura - 1 - yTela;
-    if (x < 0 || y < 0 || x >= c.largura || y >= c.altura) return; // limite do mapa
+    final w = (p - _desl) / _esc;
+    final x = (w.dx / _cs).floor();
+    final y = c.altura - 1 - (w.dy / _cs).floor();
+    if (w.dx < 0 || w.dy < 0 || x >= c.largura || y < 0 || y >= c.altura) return; // limite do mapa
     final chave = x * 100000 + y;
     if (chave == _ultimo) return;
     _ultimo = chave;
-    final k = '$x,$y';
-    if (_modo == _Modo.apagar) {
-      c.celulas.remove(k);
+    if (_apagar) {
+      c.celulas.remove('$x,$y');
     } else {
-      c.celulas[k] = _sel;
+      c.celulas['$x,$y'] = _sel;
     }
     _versao.value++;
+  }
+
+  void _comecou(ScaleStartDetails d) {
+    _cont = d.pointerCount;
+    _rebase(d.localFocalPoint);
+    _ultimo = null;
+    if (d.pointerCount == 1 && !_mover) _pintarEm(d.localFocalPoint);
+  }
+
+  void _rebase(Offset foco) {
+    _escIni = _esc;
+    _focoIni = foco;
+    _deslIni = _desl;
+  }
+
+  void _moveu(ScaleUpdateDetails d) {
+    if (d.pointerCount != _cont) {
+      _cont = d.pointerCount;
+      _rebase(d.localFocalPoint);
+      return;
+    }
+    if (d.pointerCount >= 2 || _mover) {
+      final nova = (_escIni * (d.pointerCount >= 2 ? d.scale : 1)).clamp(0.3, 3.0);
+      final mundo = (_focoIni - _deslIni) / _escIni; // ponto do mapa sob o foco inicial
+      _esc = nova;
+      _desl = d.localFocalPoint - mundo * nova;
+      _versao.value++;
+    } else {
+      _pintarEm(d.localFocalPoint);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final itens = [for (var i = 0; i < paleta.length; i++) if (paleta[i].aba == _abas[_aba]) i];
-    final larg = _margem + c.largura * _cs + 6;
-    final alt = c.altura * _cs + _margem + 4;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(c.nome),
-        actions: [
-          IconButton(tooltip: 'Configurar cena', icon: const Icon(Icons.settings_outlined), onPressed: () async {
-            await abrirConfigCena(context, c);
-            if (mounted) _versao.value++;
-            setState(() {});
-          }),
-          IconButton(tooltip: 'Dados', icon: const Icon(Icons.pin_outlined), onPressed: () => emBreve(context, 'Dados do jogo')),
-          IconButton(tooltip: 'Salvar', icon: const Icon(Icons.save_outlined), onPressed: () {
-            RepositorioProjetos.instancia.salvar();
-            aviso(context, 'Salvo.');
-          }),
-          IconButton(tooltip: 'Executar', icon: const Icon(Icons.play_arrow_rounded), onPressed: () => emBreve(context, 'Executar (engine)')),
-        ],
-      ),
+      backgroundColor: Cores.fundo,
       body: Column(children: [
         Expanded(
-          child: Container(
-            color: Color(c.corFundo),
-            child: Stack(children: [
-              InteractiveViewer(
-                constrained: false,
-                minScale: 0.4,
-                maxScale: 3,
-                panEnabled: _modo == _Modo.mover,
-                boundaryMargin: const EdgeInsets.all(160),
-                child: Listener(
-                  onPointerDown: (e) {
-                    _dedos++;
-                    _ultimo = null;
-                    _pintarEm(e.localPosition);
-                  },
-                  onPointerMove: (e) => _pintarEm(e.localPosition),
-                  onPointerUp: (e) => _dedos = (_dedos - 1).clamp(0, 10),
-                  onPointerCancel: (e) => _dedos = (_dedos - 1).clamp(0, 10),
-                  child: SizedBox(
-                    width: larg,
-                    height: alt,
-                    child: CustomPaint(painter: _GradePainter(c, _versao, _cs, _margem)),
+          child: LayoutBuilder(builder: (context, box) {
+            if (!_ajustou) _ajustar(box.biggest);
+            return ClipRect(
+              child: Stack(children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    onScaleStart: _comecou,
+                    onScaleUpdate: _moveu,
+                    child: CustomPaint(painter: _CenaPainter(this, _versao)),
                   ),
                 ),
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                child: Column(children: [
-                  for (final m in _Modo.values)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Material(
-                        color: _modo == m ? Cores.acento : Colors.black54,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => setState(() => _modo = m),
-                          child: SizedBox(width: 44, height: 44, child: Icon(switch (m) { _Modo.mover => Icons.pan_tool_alt_outlined, _Modo.pintar => Icons.brush, _Modo.apagar => Icons.cleaning_services_outlined }, color: Colors.white)),
-                        ),
-                      ),
+                SafeArea(
+                  child: Stack(children: [
+                    Positioned(left: 12, top: 8, child: BotaoGrosso(icone: Icons.arrow_back, cor: mentaEditor, aoTocar: () => Navigator.pop(context))),
+                    Positioned(
+                      right: 10,
+                      top: 70,
+                      child: Column(children: [
+                        BotaoGrosso(icone: Icons.settings, rotulo: 'Config', cor: mentaEditor, largura: 66, aoTocar: () async {
+                          await abrirConfigCena(context, c);
+                          _ajustou = false;
+                          if (mounted) setState(() {});
+                        }),
+                        const SizedBox(height: 8),
+                        BotaoGrosso(icone: Icons.pin, rotulo: 'Dados', cor: mentaEditor, largura: 66, aoTocar: () => emBreve(context, 'Dados do jogo')),
+                        const SizedBox(height: 8),
+                        BotaoGrosso(icone: Icons.save, rotulo: 'Salvar', cor: mentaEditor, largura: 66, aoTocar: () {
+                          RepositorioProjetos.instancia.salvar();
+                          aviso(context, 'Salvo.');
+                        }),
+                        const SizedBox(height: 8),
+                        BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 66, aoTocar: () => emBreve(context, 'Executar (engine)')),
+                      ]),
                     ),
-                ]),
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(10)),
-                  child: Text('${c.largura}×${c.altura} · ${rotuloFisica(c.fisica)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    Positioned(left: 12, bottom: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(color: mentaEditor, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF111111), width: 2.5)), child: Text('${c.nome} · ${c.largura}×${c.altura}', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800)))),
+                    Positioned(
+                      right: 12,
+                      bottom: 10,
+                      child: Row(children: [
+                        BotaoGrosso(icone: Icons.open_with, cor: mentaEditor, ativo: _mover, aoTocar: () => setState(() => _mover = !_mover)),
+                        const SizedBox(width: 8),
+                        BotaoGrosso(icone: Icons.auto_fix_normal, cor: mentaEditor, ativo: _apagar, aoTocar: () => setState(() => _apagar = !_apagar)),
+                      ]),
+                    ),
+                  ]),
                 ),
-              ),
-            ]),
-          ),
+              ]),
+            );
+          }),
         ),
         AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
-          height: _painelAberto ? 230 : 44,
-          decoration: BoxDecoration(color: Cores.cartao, borderRadius: const BorderRadius.vertical(top: Radius.circular(18))),
+          height: _painelAberto ? 250 : 48,
+          decoration: const BoxDecoration(color: Color(0xFF1B1D22), borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
           child: ClipRect(
             child: Column(children: [
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _painelAberto = !_painelAberto),
-                child: SizedBox(height: 44, child: Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Cores.texto2, borderRadius: BorderRadius.circular(3))))),
+                child: SizedBox(height: 48, child: Center(child: Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(3))))),
               ),
               SizedBox(
-                height: 40,
+                height: 42,
                 child: Row(children: [
                   for (var i = 0; i < _abas.length; i++)
                     Expanded(
-                      child: InkWell(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: () => setState(() => _aba = i),
-                        child: Center(child: Text(_abas[i], style: TextStyle(fontSize: 15, color: _aba == i ? Cores.acento : Cores.texto2, fontWeight: _aba == i ? FontWeight.w700 : FontWeight.w400))),
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text(_abas[i], style: TextStyle(fontSize: 17, color: _aba == i ? Colors.white : Colors.white54, fontWeight: _aba == i ? FontWeight.w800 : FontWeight.w500)),
+                          const SizedBox(height: 4),
+                          AnimatedContainer(duration: const Duration(milliseconds: 200), height: 3, width: _aba == i ? 28 : 0, decoration: BoxDecoration(color: azulEditor, borderRadius: BorderRadius.circular(2))),
+                        ]),
                       ),
                     ),
                 ]),
               ),
               Expanded(
                 child: GridView.count(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                   crossAxisCount: 5,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
                   children: [
                     for (final i in itens)
                       Toque(
                         aoTocar: () => setState(() {
                           _sel = i;
-                          _modo = _Modo.pintar;
+                          _apagar = false;
+                          _mover = false;
                         }),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          decoration: BoxDecoration(
-                            color: paleta[i].cor.withAlpha(60),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _sel == i && _modo != _Modo.apagar ? Cores.acento : Colors.transparent, width: 2.5),
-                          ),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Icon(paleta[i].icone, color: paleta[i].cor, size: 28),
-                            Text(paleta[i].nome, style: const TextStyle(fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ]),
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(color: const Color(0xFF2C2F37), borderRadius: BorderRadius.circular(14), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 3)),
+                          child: CustomPaint(painter: _Miniatura(paleta[i])),
                         ),
                       ),
                   ],
@@ -223,55 +326,55 @@ class _CenaTelaState extends State<CenaTela> {
   }
 }
 
-class _GradePainter extends CustomPainter {
-  _GradePainter(this.c, Listenable repaint, this.cs, this.margem) : super(repaint: repaint);
-  final Cena c;
-  final double cs;
-  final double margem;
+class _CenaPainter extends CustomPainter {
+  _CenaPainter(this.s, Listenable repaint) : super(repaint: repaint);
+  final _CenaTelaState s;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final fundoMapa = Paint()..color = Colors.white.withAlpha(40);
-    final linha = Paint()
-      ..color = Colors.white.withAlpha(90)
+    final c = s.c;
+    const cs = _CenaTelaState._cs;
+    canvas.drawRect(Offset.zero & size, Paint()..color = Color(c.corFundo));
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black.withAlpha(60)); // fora do mapa fica mais escuro
+    canvas.save();
+    canvas.translate(s._desl.dx, s._desl.dy);
+    canvas.scale(s._esc);
+    final area = Rect.fromLTWH(0, 0, c.largura * cs, c.altura * cs);
+    canvas.drawRect(area, Paint()..color = Color(c.corFundo));
+    // itens
+    c.celulas.forEach((k, i) {
+      if (i < 0 || i >= paleta.length) return;
+      final p = k.split(',');
+      final x = int.parse(p[0]), y = int.parse(p[1]);
+      pintarItem(canvas, Rect.fromLTWH(x * cs, (c.altura - 1 - y) * cs, cs, cs), paleta[i]);
+    });
+    // grade fina (1 pixel de tela, qualquer zoom)
+    final fina = Paint()
+      ..color = Colors.black.withAlpha(55)
+      ..strokeWidth = 1 / s._esc;
+    for (var x = 0; x <= c.largura; x++) {
+      canvas.drawLine(Offset(x * cs, 0), Offset(x * cs, area.height), fina);
+    }
+    for (var y = 0; y <= c.altura; y++) {
+      canvas.drawLine(Offset(0, y * cs), Offset(area.width, y * cs), fina);
+    }
+    canvas.drawRect(area, Paint()
+      ..color = Colors.black.withAlpha(170)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final borda = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-    final area = Rect.fromLTWH(margem, 4, c.largura * cs, c.altura * cs);
-    canvas.drawRRect(RRect.fromRectAndRadius(area, const Radius.circular(8)), fundoMapa);
-    // celulas: quadradinhos arredondados (visual proprio, nao a grade do editor de PC)
-    for (var gx = 0; gx < c.largura; gx++) {
-      for (var gy = 0; gy < c.altura; gy++) {
-        final r = Rect.fromLTWH(margem + gx * cs, 4 + (c.altura - 1 - gy) * cs, cs, cs).deflate(1.5);
-        canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), linha);
-        final i = c.celulas['$gx,$gy'];
-        if (i != null && i >= 0 && i < paleta.length) {
-          final it = paleta[i];
-          canvas.drawRRect(RRect.fromRectAndRadius(r.deflate(1), const Radius.circular(6)), Paint()..color = it.cor.withAlpha(230));
-          final tp = TextPainter(
-            text: TextSpan(text: String.fromCharCode(it.icone.codePoint), style: TextStyle(fontFamily: it.icone.fontFamily, package: it.icone.fontPackage, fontSize: cs * 0.6, color: Colors.white)),
-            textDirection: TextDirection.ltr,
-          )..layout();
-          tp.paint(canvas, r.center - Offset(tp.width / 2, tp.height / 2));
-        }
-      }
+      ..strokeWidth = 2.5 / s._esc);
+    // numeros nos eixos (0 = canto inferior esquerdo)
+    final st = TextStyle(color: Colors.white.withAlpha(235), fontSize: 11, fontWeight: FontWeight.w700);
+    for (var x = 0; x < c.largura; x++) {
+      final tp = TextPainter(text: TextSpan(text: '$x', style: st), textDirection: TextDirection.ltr)..layout();
+      tp.paint(canvas, Offset(x * cs + cs / 2 - tp.width / 2, area.height + 5));
     }
-    canvas.drawRRect(RRect.fromRectAndRadius(area, const Radius.circular(8)), borda);
-    // numeros: x embaixo, y a esquerda (0 = canto inferior esquerdo)
-    final st = TextStyle(color: Colors.white.withAlpha(230), fontSize: 11, fontWeight: FontWeight.w600);
-    for (var gx = 0; gx < c.largura; gx++) {
-      final tp = TextPainter(text: TextSpan(text: '$gx', style: st), textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset(margem + gx * cs + cs / 2 - tp.width / 2, 4 + c.altura * cs + 6));
+    for (var y = 0; y < c.altura; y++) {
+      final tp = TextPainter(text: TextSpan(text: '$y', style: st), textDirection: TextDirection.ltr)..layout();
+      tp.paint(canvas, Offset(-6 - tp.width, (c.altura - 1 - y) * cs + cs / 2 - tp.height / 2));
     }
-    for (var gy = 0; gy < c.altura; gy++) {
-      final tp = TextPainter(text: TextSpan(text: '$gy', style: st), textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset(margem - 8 - tp.width, 4 + (c.altura - 1 - gy) * cs + cs / 2 - tp.height / 2));
-    }
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _GradePainter old) => true;
+  bool shouldRepaint(covariant _CenaPainter old) => true;
 }

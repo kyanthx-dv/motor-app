@@ -32,10 +32,9 @@ class _ConfigCenaState extends State<_ConfigCena> {
     super.dispose();
   }
 
-  Widget _passo(String rotulo, int v, ValueChanged<int> mudou) => Row(children: [
-        SizedBox(width: 80, child: Text(rotulo)),
+  Widget _passo(int v, ValueChanged<int> mudou) => Row(children: [
         IconButton.filledTonal(onPressed: v > mapaMin ? () => mudou(v - 1) : null, icon: const Icon(Icons.remove)),
-        SizedBox(width: 48, child: Center(child: Text('$v', style: const TextStyle(fontSize: 18)))),
+        Expanded(child: Center(child: Text('$v', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)))),
         IconButton.filledTonal(onPressed: v < mapaMax ? () => mudou(v + 1) : null, icon: const Icon(Icons.add)),
       ]);
 
@@ -54,45 +53,61 @@ class _ConfigCenaState extends State<_ConfigCena> {
     Navigator.pop(context);
   }
 
+  Widget _linha(String r, Widget w) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [SizedBox(width: 92, child: Text(r, style: const TextStyle(fontSize: 15))), Expanded(child: w)]));
+
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        backgroundColor: Cores.cartao,
-        title: const Text('Configurar cena'),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            TextField(controller: _nome, decoration: const InputDecoration(labelText: 'Nome da cena')),
-            const SizedBox(height: 14),
-            const Text('Tipo de física', style: TextStyle(color: Cores.texto2)),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<Fisica>(
-                segments: const [ButtonSegment(value: Fisica.plataforma, label: Text('Plataforma'), icon: Icon(Icons.directions_run)), ButtonSegment(value: Fisica.rpg, label: Text('RPG'), icon: Icon(Icons.map_outlined))],
-                selected: {_fisica},
-                onSelectionChanged: (s) => setState(() => _fisica = s.first),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text('Tamanho (máx. $mapaMax × $mapaMax)', style: const TextStyle(color: Cores.texto2)),
-            _passo('Largura', _l, (v) => setState(() => _l = v)),
-            _passo('Altura', _a, (v) => setState(() => _a = v)),
-            const SizedBox(height: 10),
-            const Text('Cor de fundo', style: TextStyle(color: Cores.texto2)),
-            const SizedBox(height: 6),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final k in _cores)
-                GestureDetector(
-                  onTap: () => setState(() => _cor = k),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(color: Color(k), shape: BoxShape.circle, border: Border.all(color: _cor == k ? Cores.acento : Colors.white24, width: _cor == k ? 3 : 1)),
+  Widget build(BuildContext context) => Dialog(
+        backgroundColor: const Color(0xFF151619),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            height: 56,
+            color: const Color(0xFF26282D),
+            child: Row(children: [
+              const SizedBox(width: 48),
+              const Expanded(child: Center(child: Text('Configurar cena', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)))),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ]),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _linha('Nome', TextField(controller: _nome, textAlign: TextAlign.center, decoration: const InputDecoration(isDense: true))),
+                _linha(
+                  'Física',
+                  SegmentedButton<Fisica>(
+                    showSelectedIcon: false,
+                    segments: const [ButtonSegment(value: Fisica.plataforma, label: Text('Plataforma')), ButtonSegment(value: Fisica.rpg, label: Text('RPG'))],
+                    selected: {_fisica},
+                    onSelectionChanged: (s) => setState(() => _fisica = s.first),
                   ),
                 ),
-            ]),
-          ]),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), FilledButton(onPressed: _confirmar, child: const Text('Confirmar'))],
+                _linha('Largura', _passo(_l, (v) => setState(() => _l = v))),
+                _linha('Altura', _passo(_a, (v) => setState(() => _a = v))),
+                Padding(padding: const EdgeInsets.only(left: 92), child: Text('Máximo $mapaMax × $mapaMax', style: const TextStyle(color: Cores.texto2, fontSize: 12))),
+                _linha(
+                  'Fundo',
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final k in _cores)
+                      GestureDetector(
+                        onTap: () => setState(() => _cor = k),
+                        child: AnimatedContainer(duration: const Duration(milliseconds: 150), width: 34, height: 34, decoration: BoxDecoration(color: Color(k), borderRadius: BorderRadius.circular(10), border: Border.all(color: _cor == k ? azulEditor : Colors.white24, width: _cor == k ? 3 : 1))),
+                      ),
+                  ]),
+                ),
+              ]),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Toque(
+              aoTocar: _confirmar,
+              child: Container(height: 52, width: double.infinity, decoration: BoxDecoration(color: azulEditor, borderRadius: BorderRadius.circular(14)), child: const Center(child: Text('Confirmar', style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w800)))),
+            ),
+          ),
+        ]),
       );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'dados.dart';
 
@@ -15,6 +16,7 @@ class Cores {
 }
 
 ThemeData temaBlocky(bool escuro) => ThemeData(
+      textTheme: GoogleFonts.nunitoTextTheme(ThemeData(brightness: escuro ? Brightness.dark : Brightness.light).textTheme),
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(builders: {
         TargetPlatform.android: TransicaoSuave(),
@@ -184,3 +186,36 @@ class IconeAnim extends StatelessWidget {
         child: Icon(ligado ? ligadoIcone : desligadoIcone, key: ValueKey<bool>(ligado), color: ligado ? cor : null, size: tamanho),
       );
 }
+
+/// Botao "gordinho" do editor: cor viva, contorno escuro grosso, cantos redondos (estilo dos prints de referencia).
+class BotaoGrosso extends StatelessWidget {
+  const BotaoGrosso({super.key, required this.icone, this.rotulo, required this.cor, required this.aoTocar, this.largura, this.ativo = false});
+  final IconData icone;
+  final String? rotulo;
+  final Color cor;
+  final VoidCallback aoTocar;
+  final double? largura;
+  final bool ativo;
+
+  @override
+  Widget build(BuildContext context) => Toque(
+        aoTocar: aoTocar,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: largura,
+          padding: EdgeInsets.symmetric(horizontal: rotulo == null ? 10 : 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: ativo ? Colors.white : cor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF111111), width: 2.5),
+          ),
+          child: rotulo == null
+              ? Icon(icone, color: Colors.black87, size: 28)
+              : Column(mainAxisSize: MainAxisSize.min, children: [Icon(icone, color: Colors.black87, size: 26), Text(rotulo!, style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w800))]),
+        ),
+      );
+}
+
+const Color mentaEditor = Color(0xFF6BF5B0);
+const Color azulEditor = Color(0xFF38B6FF);
+const Color rosaEditor = Color(0xFFFF7B93);
