@@ -4,6 +4,7 @@ import 'abas.dart';
 import 'detalhes.dart';
 import 'dados.dart';
 import 'jogo.dart';
+import 'perfil_publico.dart';
 import 'widgets.dart';
 
 enum _Tipo { jogos, assets, posts, pessoas }
@@ -93,10 +94,10 @@ class _BuscaTelaState extends State<BuscaTela> {
       case _Tipo.pessoas:
         for (final p in pessoasExemplo.where((p) => _casa(p.usuario) || _casa(p.nome))) {
           widgets.add(ListTile(
-            leading: CircleAvatar(child: Text(p.nome[0])),
-            title: Text(p.nome),
+            leading: AvatarUsuario(p.usuario, raio: 22),
+            title: Text(p.nome, style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('@${p.usuario} · ${abreviar(p.seguidores)} seguidores'),
-            trailing: OutlinedButton(onPressed: () => emBreve(context, 'Seguir'), child: const Text('Seguir')),
+            onTap: () => abrirPerfil(context, p.usuario),
           ));
         }
       case _Tipo.posts:

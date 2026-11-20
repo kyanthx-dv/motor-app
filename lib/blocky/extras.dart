@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'dados.dart';
+import 'perfil_publico.dart';
 import 'widgets.dart';
 
-/// Botao Seguir/Seguindo (so visual).
+/// Seguir/Seguindo: pilula compacta (so aparece no perfil e nas notificacoes de seguidor).
 class BotaoSeguir extends StatefulWidget {
   const BotaoSeguir({super.key, this.inicial = false});
   final bool inicial;
@@ -16,10 +17,20 @@ class _BotaoSeguirState extends State<BotaoSeguir> {
   late bool _seguindo = widget.inicial;
 
   @override
-  Widget build(BuildContext context) => FilledButton(
-        style: FilledButton.styleFrom(backgroundColor: _seguindo ? Cores.cartao2 : const Color(0xFF0EA5FF), foregroundColor: _seguindo ? Cores.texto2 : Colors.white),
-        onPressed: () => setState(() => _seguindo = !_seguindo),
-        child: Text(_seguindo ? 'Seguindo' : 'Seguir'),
+  Widget build(BuildContext context) => Toque(
+        aoTocar: () => setState(() => _seguindo = !_seguindo),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(gradient: _seguindo ? null : degradeMarca, color: _seguindo ? Cores.cartao2 : null, borderRadius: BorderRadius.circular(17)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: Icon(_seguindo ? Icons.check : Icons.add, key: ValueKey<bool>(_seguindo), size: 16, color: _seguindo ? Cores.texto2 : Colors.white)),
+            const SizedBox(width: 4),
+            Text(_seguindo ? 'Seguindo' : 'Seguir', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _seguindo ? Cores.texto2 : Colors.white)),
+          ]),
+        ),
       );
 }
 
@@ -62,7 +73,7 @@ class CarteiraTela extends StatelessWidget {
               ),
               child: const Text('Ganhar moedas  ›'),
             ),
-            const TabBar(tabs: [Tab(text: 'Entradas'), Tab(text: 'Saídas')]),
+            const BarraAbas(['Entradas', 'Saídas']),
             Expanded(
               child: TabBarView(children: [
                 ListView(children: [
@@ -87,16 +98,17 @@ class NotificacoesTela extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Notificações'),
             centerTitle: true,
-            bottom: const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [Tab(text: 'Seguidores'), Tab(text: 'Interações'), Tab(text: 'Comentários'), Tab(text: 'Sistema')]),
+            bottom: const BarraAbas(['Seguidores', 'Interações', 'Comentários', 'Sistema'], rolavel: true),
           ),
           body: TabBarView(children: [
             ListView(children: [
               for (final p in pessoasExemplo)
                 ListTile(
-                  leading: CircleAvatar(radius: 24, child: Text(p.nome[0])),
-                  title: Text(p.nome),
-                  subtitle: const Text('começou a seguir você', style: TextStyle(color: Cores.texto2)),
-                  trailing: const SizedBox(width: 110, child: BotaoSeguir()),
+                  leading: AvatarUsuario(p.usuario, raio: 24),
+                  title: Text(p.nome, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('@${p.usuario} · começou a seguir você', style: const TextStyle(color: Cores.texto2, fontSize: 12)),
+                  trailing: const BotaoSeguir(),
+                  onTap: () => abrirPerfil(context, p.usuario),
                 ),
             ]),
             ListView(children: const [

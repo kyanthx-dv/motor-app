@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'extras.dart';
+import 'perfil_publico.dart';
 import 'dados.dart';
 import 'widgets.dart';
 
@@ -53,28 +53,14 @@ class _JogoPaginaState extends State<JogoPagina> {
                   Text(j.titulo, style: const TextStyle(fontSize: 22)),
                   Text('${abreviar(j.visitas)} visitas · ${rotuloOrientacao(j.orientacao)}', style: const TextStyle(color: Cores.texto2)),
                   const SizedBox(height: 14),
-                  SizedBox(
-                    width: 240,
-                    height: 48,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                      icon: const Icon(Icons.play_arrow, size: 28),
-                      label: const Text('Jogar', style: TextStyle(fontSize: 18)),
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j))),
-                    ),
-                  ),
+                  BotaoPrimario(texto: 'Jogar', icone: Icons.play_arrow_rounded, cor: const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF16A34A)]), aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
                 ]),
               ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  CircleAvatar(radius: 24, child: Text(j.autor[0].toUpperCase())),
-                  const SizedBox(width: 10),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(j.autor, style: const TextStyle(fontSize: 16)), const Text('Dono · Team Create no futuro', style: TextStyle(color: Cores.texto2, fontSize: 12))])),
-                  const BotaoSeguir(),
-                ]),
+                Align(alignment: Alignment.centerLeft, child: ChipAutor(j.autor, legenda: 'criador', raio: 22)),
                 const SizedBox(height: 14),
                 Text(j.descricao),
                 const SizedBox(height: 14),
@@ -99,7 +85,7 @@ class _JogoPaginaState extends State<JogoPagina> {
               Expanded(child: TextField(controller: _campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
               const SizedBox(width: 8),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF8A00), minimumSize: const Size(72, 48)),
+                style: FilledButton.styleFrom(minimumSize: const Size(72, 48)),
                 onPressed: () {
                   final t = _campo.text.trim();
                   if (t.isEmpty) return;

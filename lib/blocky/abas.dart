@@ -7,6 +7,7 @@ import 'entrada.dart';
 import 'detalhes.dart';
 import 'extras.dart';
 import 'jogo.dart';
+import 'perfil_publico.dart';
 import 'projeto.dart';
 import 'projetos.dart';
 import 'widgets.dart';
@@ -49,7 +50,7 @@ class JogosAba extends StatelessWidget {
             IconButton(tooltip: 'Notificações', icon: const Badge(label: Text('3'), child: Icon(Icons.notifications_none)), onPressed: () => _ir(context, const NotificacoesTela())),
             IconButton(tooltip: 'Mensagens', icon: const Icon(Icons.chat_bubble_outline), onPressed: () => _ir(context, const ChatTela())),
           ]),
-          const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [Tab(text: 'Em alta'), Tab(text: 'Descobrir'), Tab(text: 'Novos'), Tab(text: 'Ranking'), Tab(text: 'Seguindo')]),
+          BarraAbas(const ['Em alta', 'Descobrir', 'Novos', 'Ranking', 'Seguindo'], rolavel: true),
           Expanded(
             child: TabBarView(children: [
               _HomeAlta(),
@@ -137,7 +138,7 @@ class AssetsAba extends StatelessWidget {
         length: 4,
         child: Column(children: [
           _Topo('Loja', [_lupa(context), IconButton(icon: const Icon(Icons.grid_view), onPressed: () => emBreve(context, 'Meus itens'))]),
-          const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [Tab(text: 'Para você'), Tab(text: 'Seguindo'), Tab(text: 'Assets'), Tab(text: 'PFPs')]),
+          BarraAbas(const ['Para você', 'Seguindo', 'Assets', 'PFPs'], rolavel: true),
           Expanded(
             child: TabBarView(children: [
               _Grade(itens: itensLojaExemplo),
@@ -203,7 +204,7 @@ class PostsAba extends StatelessWidget {
         length: 4,
         child: Column(children: [
           _Topo('Comunidade', [_lupa(context), IconButton(icon: const Icon(Icons.emoji_events_outlined), onPressed: () => emBreve(context, 'Ranking de criadores'))]),
-          const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [Tab(text: 'Seguindo'), Tab(text: 'Para você'), Tab(text: 'Vídeo'), Tab(text: 'Gamedev')]),
+          BarraAbas(const ['Seguindo', 'Para você', 'Vídeo', 'Gamedev'], rolavel: true),
           Expanded(
             child: TabBarView(children: [
               _Feed(postsExemplo.where((p) => p.autor != 'zed').toList()),
@@ -249,9 +250,7 @@ class _CartaoPostState extends State<CartaoPost> {
         aoTocar: () => _ir(context, PostPagina(post: p)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          CircleAvatar(radius: 22, child: Text(p.autor[0].toUpperCase())),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.autor, style: const TextStyle(fontSize: 16)), const Text('11 nov', style: TextStyle(color: Cores.texto2, fontSize: 12))])),
+          Expanded(child: Align(alignment: Alignment.centerLeft, child: ChipAutor(p.autor, legenda: '11 nov'))),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () => emBreve(context, 'Opções')),
         ]),
         const SizedBox(height: 8),
@@ -299,7 +298,7 @@ void abrirComentarios(BuildContext context, List<Comentario> lista) {
             Expanded(child: TextField(controller: campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
             const SizedBox(width: 8),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF8A00)),
+              
               onPressed: () {
                 final t = campo.text.trim();
                 if (t.isEmpty) return;
@@ -333,7 +332,7 @@ class PerfilAba extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Align(alignment: Alignment.centerRight, child: IconButton(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: () => _menuPerfil(context))),
                 Row(children: [
-                  const CircleAvatar(radius: 46, backgroundColor: Cores.acento, child: Text('K', style: TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Colors.white))),
+                  const AvatarUsuario('kyanthx', raio: 46),
                   const Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_Numero('48', 'Seguindo'), _Numero('1,2k', 'Seguidores'), _Numero('24', 'Favoritos')])),
                 ]),
                 const SizedBox(height: 12),
@@ -350,7 +349,7 @@ class PerfilAba extends StatelessWidget {
               ]),
             ),
           ),
-          SliverPersistentHeader(pinned: true, delegate: _TabsFixas(TabBar(tabs: [Tab(text: 'Jogos ${meus.length}'), const Tab(text: 'Assets 4'), const Tab(text: 'Posts 9')]))),
+          SliverPersistentHeader(pinned: true, delegate: _TabsFixas(const BarraAbas(['Jogos', 'Assets', 'Posts']))),
         ],
         body: TabBarView(children: [
           ListenableBuilder(
@@ -371,7 +370,7 @@ class PerfilAba extends StatelessWidget {
 
 class _TabsFixas extends SliverPersistentHeaderDelegate {
   _TabsFixas(this.tabs);
-  final TabBar tabs;
+  final BarraAbas tabs;
 
   @override
   double get minExtent => tabs.preferredSize.height;

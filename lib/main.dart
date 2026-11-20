@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mime/mime.dart';
-import 'blocky/entrada.dart';
+import 'blocky/abertura.dart';
 import 'blocky/projetos.dart';
 import 'blocky/servidor.dart';
 import 'blocky/widgets.dart';
@@ -83,6 +83,6 @@ class _BlockyAppState extends State<BlockyApp> {
         debugShowCheckedModeBanner: false,
         theme: temaBlocky(temaEscuro.value),
         builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(0.9)), child: child!),
-        home: const EntradaTela(),
+        home: const AberturaTela(),
       );
 }

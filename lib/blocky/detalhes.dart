@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'dados.dart';
-import 'extras.dart';
+import 'perfil_publico.dart';
 import 'widgets.dart';
 
 const _ouro = Color(0xFFFBBF24);
@@ -58,7 +58,7 @@ class _BaseState extends State<_Base> {
                 Expanded(child: TextField(controller: _campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
                 const SizedBox(width: 8),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF8A00), minimumSize: const Size(72, 48)),
+                  style: FilledButton.styleFrom(minimumSize: const Size(72, 48)),
                   onPressed: () {
                     final t = _campo.text.trim();
                     if (t.isEmpty) return;
@@ -103,12 +103,7 @@ class _AcoesState extends State<_Acoes> {
 
 Widget _autor(String autor, String sub) => Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(children: [
-        CircleAvatar(radius: 24, child: Text(autor[0].toUpperCase())),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(autor, style: const TextStyle(fontSize: 16)), Text(sub, style: const TextStyle(color: Cores.texto2, fontSize: 12))])),
-        const BotaoSeguir(),
-      ]),
+      child: Align(alignment: Alignment.centerLeft, child: ChipAutor(autor, legenda: sub, raio: 22)),
     );
 
 /// Post de FOTO: imagem, titulo, descricao, curtir/favoritar e comentarios. (Video tera estilo proprio.)
@@ -167,15 +162,7 @@ class ItemPagina extends StatelessWidget {
                 Text(i.preco == 0 ? 'Grátis' : '${i.preco}', style: TextStyle(fontSize: 26, color: i.preco == 0 ? Cores.verde : const Color(0xFFFF7A33))),
               ]),
               const SizedBox(height: 12),
-              SizedBox(
-                width: 240,
-                height: 48,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                  onPressed: () => emBreve(context, i.preco == 0 ? 'Baixar' : 'Compra'),
-                  child: Text(i.preco == 0 ? 'Obter' : 'Comprar', style: const TextStyle(fontSize: 18)),
-                ),
-              ),
+              BotaoPrimario(texto: i.preco == 0 ? 'Obter' : 'Comprar', aoTocar: () => emBreve(context, i.preco == 0 ? 'Baixar' : 'Compra')),
               const SizedBox(height: 16),
             ]),
           ),
