@@ -20,7 +20,6 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
 
   static const _icones = <IconData>[Icons.home_outlined, Icons.storefront_outlined, Icons.forum_outlined, Icons.person_outline];
   static const _icones2 = <IconData>[Icons.home_rounded, Icons.storefront, Icons.forum, Icons.person];
-  static const _rotulos = ['Início', 'Loja', 'Comunidade', 'Perfil'];
 
   @override
   void dispose() {
