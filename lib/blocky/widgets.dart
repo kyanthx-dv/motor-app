@@ -203,15 +203,15 @@ class BotaoGrosso extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: largura,
-          padding: EdgeInsets.symmetric(horizontal: rotulo == null ? 10 : 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: rotulo == null ? 8 : 8, vertical: 6),
           decoration: BoxDecoration(
             color: ativo ? Colors.white : cor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF111111), width: 2.5),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: const Color(0xFF111111), width: 2),
           ),
           child: rotulo == null
-              ? Icon(icone, color: Colors.black87, size: 28)
-              : Column(mainAxisSize: MainAxisSize.min, children: [Icon(icone, color: Colors.black87, size: 26), Text(rotulo!, style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w800))]),
+              ? Icon(icone, color: Colors.black87, size: 22)
+              : Column(mainAxisSize: MainAxisSize.min, children: [Icon(icone, color: Colors.black87, size: 21), Text(rotulo!, style: const TextStyle(color: Colors.black87, fontSize: 10.5, fontWeight: FontWeight.w800))]),
         ),
       );
 }
