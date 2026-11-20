@@ -160,66 +160,99 @@ class _ProjetoTelaState extends State<ProjetoTela> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: Text(p.nome),
-          actions: [
-            IconButton(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: _configJogo),
-            IconButton(tooltip: 'Executar', icon: const Icon(Icons.play_arrow_rounded), onPressed: () => emBreve(context, 'Executar (engine)')),
-          ],
-        ),
-        body: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Row(children: [
-              Icon(p.orientacao == Orientacao.retrato ? Icons.stay_current_portrait : Icons.stay_current_landscape, size: 18, color: Cores.texto2),
-              const SizedBox(width: 6),
-              Text('${rotuloOrientacao(p.orientacao)} · ${p.cenas.length} ${p.cenas.length == 1 ? 'cena' : 'cenas'}', style: const TextStyle(color: Cores.texto2)),
-            ]),
-          ),
-          Expanded(
-            child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: [
-              Wrap(spacing: 12, runSpacing: 12, children: [
-                for (var i = 0; i < p.cenas.length; i++) Aparece(indice: i, child: _cartaoCena(p.cenas[i])),
-              ]),
-            ]),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
               child: Row(children: [
-                Expanded(child: OutlinedButton.icon(onPressed: () => emBreve(context, 'Publicar'), icon: const Icon(Icons.upload), label: const Text('Publicar'))),
+                BotaoGrosso(icone: Icons.arrow_back, cor: mentaEditor, aoTocar: () => Navigator.pop(context)),
                 const SizedBox(width: 12),
-                Expanded(child: FilledButton.icon(onPressed: _novaCena, icon: const Icon(Icons.add_location_alt_outlined), label: const Text('Nova cena'))),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                    Text('${rotuloOrientacao(p.orientacao)} · ${p.cenas.length} ${p.cenas.length == 1 ? 'cena' : 'cenas'}', style: const TextStyle(color: Cores.texto2, fontSize: 12)),
+                  ]),
+                ),
               ]),
             ),
-          ),
-        ]),
+            Expanded(
+              child: Stack(children: [
+                Container(
+                  margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+                  decoration: BoxDecoration(color: const Color(0xFF64C8F0), borderRadius: BorderRadius.circular(28)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 18, 84, 18),
+                      child: Wrap(spacing: 14, runSpacing: 14, children: [
+                        for (var i = 0; i < p.cenas.length; i++) Aparece(indice: i, child: _cartaoCena(p.cenas[i])),
+                      ]),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 22,
+                  top: 24,
+                  child: Column(children: [
+                    BotaoGrosso(icone: Icons.settings, rotulo: 'Config', cor: mentaEditor, largura: 66, aoTocar: _configJogo),
+                    const SizedBox(height: 8),
+                    BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 66, aoTocar: () => emBreve(context, 'Executar (engine)')),
+                  ]),
+                ),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+              child: Row(children: [
+                Expanded(child: _grande(Icons.upload, 'Publicar', azulEditor, () => emBreve(context, 'Publicar'))),
+                const SizedBox(width: 12),
+                Expanded(child: _grande(Icons.add_location_alt, 'Nova cena', mentaEditor, _novaCena)),
+              ]),
+            ),
+          ]),
+        ),
+      );
+
+  Widget _grande(IconData i, String t, Color cor, VoidCallback f) => Toque(
+        aoTocar: f,
+        child: Container(
+          height: 54,
+          decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF111111), width: 2.5)),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(i, color: Colors.black87), const SizedBox(width: 8), Text(t, style: const TextStyle(color: Colors.black87, fontSize: 17, fontWeight: FontWeight.w800))]),
+        ),
       );
 
   Widget _cartaoCena(Cena c) {
-    final cor = c.fisica == Fisica.rpg ? const Color(0xFF84CC16) : const Color(0xFF38BDF8);
+    final rpg = c.fisica == Fisica.rpg;
     return Toque(
       aoTocar: () async {
         await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CenaTela(projeto: p, cena: c)));
         if (mounted) setState(() {});
       },
       child: Container(
-        width: 160,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.inicial ? Cores.verde : Cores.cartao2, width: c.inicial ? 2 : 1)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: cor.withAlpha(50), borderRadius: BorderRadius.circular(6)), child: Text(rotuloFisica(c.fisica), style: TextStyle(fontSize: 11, color: cor))),
-            const Spacer(),
-            GestureDetector(onTap: () => _menuCena(c), child: const Icon(Icons.more_horiz, size: 22)),
+        width: 150,
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF111111), width: 2.5)),
+        child: DefaultTextStyle(
+          style: const TextStyle(color: Colors.black87),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Text(rotuloFisica(c.fisica), style: const TextStyle(fontSize: 11)),
+              const Spacer(),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1), decoration: BoxDecoration(color: rpg ? const Color(0xFF84CC16) : azulEditor, borderRadius: BorderRadius.circular(5)), child: const Text('Solo', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700))),
+            ]),
+            const SizedBox(height: 6),
+            Center(child: Text(c.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+            Text('${c.largura}×${c.altura}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.black45)),
+            const SizedBox(height: 6),
+            Row(children: [
+              if (c.inicial) Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: mentaEditor, borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF111111), width: 2)), child: const Text('Inicial', style: TextStyle(fontSize: 12))),
+              const Spacer(),
+              GestureDetector(onTap: () => _menuCena(c), child: const Icon(Icons.settings, size: 22, color: Colors.black87)),
+            ]),
           ]),
-          const SizedBox(height: 10),
-          Container(height: 56, decoration: BoxDecoration(color: Color(c.corFundo), borderRadius: BorderRadius.circular(10)), child: Center(child: Text('${c.largura}×${c.altura}', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w700)))),
-          const SizedBox(height: 8),
-          Text(c.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
-          if (c.inicial) const Text('Cena inicial', style: TextStyle(color: Cores.verde, fontSize: 12)),
-        ]),
+        ),
       ),
     );
   }
