@@ -25,13 +25,21 @@ void abrirPerfil(BuildContext context, String usuario) => Navigator.of(context).
 
 /// Foto de perfil (por enquanto, inicial sobre degrade).
 class AvatarUsuario extends StatelessWidget {
-  const AvatarUsuario(this.usuario, {super.key, this.raio = 18});
+  const AvatarUsuario(this.usuario, {super.key, this.raio = 18, this.anel = false});
   final String usuario;
   final double raio;
+  final bool anel; // moldura em degrade (perfis)
 
   @override
   Widget build(BuildContext context) {
     final c = _coresDe(usuario);
+    if (anel) {
+      return Container(
+        padding: const EdgeInsets.all(3),
+        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: SweepGradient(colors: [Color(0xFF8B5CF6), Color(0xFF38BDF8), Color(0xFFF472B6), Color(0xFF8B5CF6)])),
+        child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(color: Cores.fundo, shape: BoxShape.circle), child: AvatarUsuario(usuario, raio: raio)),
+      );
+    }
     return Container(
       width: raio * 2,
       height: raio * 2,
@@ -87,9 +95,9 @@ class PerfilPublicoTela extends StatelessWidget {
             decoration: BoxDecoration(gradient: LinearGradient(colors: [c[0].withAlpha(200), c[1].withAlpha(120)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
             child: SafeArea(child: Align(alignment: Alignment.topLeft, child: Padding(padding: const EdgeInsets.all(8), child: IconButton.filledTonal(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))))),
           ),
-          Positioned(left: 20, bottom: -38, child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Cores.fundo, shape: BoxShape.circle), child: AvatarUsuario(usuario, raio: 40))),
+          Positioned(left: 16, bottom: -44, child: AvatarUsuario(usuario, raio: 40, anel: true)),
         ]),
-        const SizedBox(height: 46),
+        const SizedBox(height: 54),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -125,26 +125,31 @@ class Capa extends StatelessWidget {
   final double tamanhoIcone;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(raio),
-        child: Container(
-          decoration: BoxDecoration(gradient: LinearGradient(colors: [cor1, cor2], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-          child: Stack(children: [
-            Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.white.withAlpha(30), Colors.black.withAlpha(60)], begin: Alignment.topCenter, end: Alignment.bottomCenter)))),
-            Center(child: Icon(icone, size: tamanhoIcone, color: Colors.white.withAlpha(235))),
-            if (video)
-              Positioned(
-                right: 8,
-                bottom: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.black.withAlpha(150), borderRadius: BorderRadius.circular(10)),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.play_arrow, size: 16), Text('vídeo', style: TextStyle(fontSize: 12))]),
-                ),
+  Widget build(BuildContext context) {
+    // tons dessaturados: a cor do jogo so "tinge" uma base neutra, para o texto ser o protagonista
+    final base = Cores.cartao2;
+    final a = Color.alphaBlend(cor1.withAlpha(temaEscuro.value ? 78 : 110), base);
+    final b = Color.alphaBlend(cor2.withAlpha(temaEscuro.value ? 46 : 70), base);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(raio),
+      child: Container(
+        decoration: BoxDecoration(gradient: LinearGradient(colors: [a, b], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        child: Stack(children: [
+          Center(child: Icon(icone, size: tamanhoIcone * 0.8, color: (temaEscuro.value ? Colors.white : Colors.black).withAlpha(95))),
+          if (video)
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: Colors.black.withAlpha(150), borderRadius: BorderRadius.circular(10)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.play_arrow, size: 16, color: Colors.white), Text('vídeo', style: TextStyle(fontSize: 12, color: Colors.white))]),
               ),
-          ]),
-        ),
-      );
+            ),
+        ]),
+      ),
+    );
+  }
 }
 
 class Estatistica extends StatelessWidget {
@@ -267,12 +272,12 @@ class IconeAnim extends StatelessWidget {
       );
 }
 
-/// Botao "gordinho" do editor: cor viva, contorno escuro grosso, cantos redondos (estilo dos prints de referencia).
+/// Botao do editor: superficie escura, sem contorno; ativo = cor de destaque. (Nome antigo mantido.)
 class BotaoGrosso extends StatelessWidget {
   const BotaoGrosso({super.key, required this.icone, this.rotulo, required this.cor, required this.aoTocar, this.largura, this.ativo = false});
   final IconData icone;
   final String? rotulo;
-  final Color cor;
+  final Color cor; // ignorado: o editor segue o tema do app
   final VoidCallback aoTocar;
   final double? largura;
   final bool ativo;
@@ -283,19 +288,23 @@ class BotaoGrosso extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: largura,
-          padding: EdgeInsets.symmetric(horizontal: rotulo == null ? 8 : 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
           decoration: BoxDecoration(
-            color: ativo ? Colors.white : cor,
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: const Color(0xFF111111), width: 2),
+            color: ativo ? Cores.acento : Cores.cartao.withAlpha(235),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: rotulo == null
-              ? Icon(icone, color: Colors.black87, size: 22)
-              : Column(mainAxisSize: MainAxisSize.min, children: [Icon(icone, color: Colors.black87, size: 21), Text(rotulo!, style: const TextStyle(color: Colors.black87, fontSize: 10.5, fontWeight: FontWeight.w800))]),
+              ? Icon(icone, color: ativo ? Colors.white : (temaEscuro.value ? Colors.white : Colors.black87), size: 22)
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icone, color: temaEscuro.value ? Colors.white : Colors.black87, size: 20),
+                  const SizedBox(height: 1),
+                  Text(rotulo!, style: TextStyle(color: Cores.texto2, fontSize: 10, fontWeight: FontWeight.w700)),
+                ]),
         ),
       );
 }
 
-const Color mentaEditor = Color(0xFF6BF5B0);
-const Color azulEditor = Color(0xFF38B6FF);
+const Color mentaEditor = Color(0xFF7C5CFF); // = acento (nome historico)
+const Color azulEditor = Color(0xFF7C5CFF);
 const Color rosaEditor = Color(0xFFFF7B93);

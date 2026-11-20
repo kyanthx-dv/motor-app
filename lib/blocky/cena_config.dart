@@ -57,14 +57,14 @@ class _ConfigCenaState extends State<_ConfigCena> {
 
   @override
   Widget build(BuildContext context) => Dialog(
-        backgroundColor: const Color(0xFF151619),
+        backgroundColor: Cores.cartao,
         insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         clipBehavior: Clip.antiAlias,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             height: 56,
-            color: const Color(0xFF26282D),
+            color: Cores.cartao2,
             child: Row(children: [
               const SizedBox(width: 48),
               const Expanded(child: Center(child: Text('Configurar cena', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)))),
@@ -103,10 +103,7 @@ class _ConfigCenaState extends State<_ConfigCena> {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Toque(
-              aoTocar: _confirmar,
-              child: Container(height: 52, width: double.infinity, decoration: BoxDecoration(color: azulEditor, borderRadius: BorderRadius.circular(14)), child: const Center(child: Text('Confirmar', style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.w800)))),
-            ),
+            child: SizedBox(width: double.infinity, child: BotaoPrimario(texto: 'Confirmar', aoTocar: _confirmar)),
           ),
         ]),
       );
