@@ -15,17 +15,20 @@ enum Fisica { plataforma, rpg }
 String rotuloFisica(Fisica f) => f == Fisica.plataforma ? 'Plataforma' : 'RPG';
 
 class Cena {
-  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, Map<String, int>? celulas, this.inicial = false}) : celulas = celulas ?? {};
+  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, Map<String, int>? celulas, this.inicial = false, this.px = -1, this.py = -1}) : celulas = celulas ?? {};
   String nome;
   Fisica fisica;
   int largura;
   int altura;
   int corFundo; // ARGB
   bool inicial;
+  /// Posicao do cartao no tabuleiro de cenas (negativo = ainda nao posicionado).
+  double px;
+  double py;
   /// "x,y" -> indice do item da paleta (origem embaixo-esquerda, como no editor de PC).
   Map<String, int> celulas;
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'cel': celulas};
+  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'cel': celulas};
 
   static Cena fromJson(Map<String, dynamic> j) => Cena(
         nome: (j['nome'] as String?) ?? 'Cena',
@@ -34,10 +37,12 @@ class Cena {
         altura: ((j['a'] as num?) ?? 12).toInt().clamp(mapaMin, mapaMax),
         corFundo: ((j['cor'] as num?) ?? 0xFF4DD0FF).toInt(),
         inicial: (j['ini'] as bool?) ?? false,
+        px: ((j['px'] as num?) ?? -1).toDouble(),
+        py: ((j['py'] as num?) ?? -1).toDouble(),
         celulas: {for (final e in ((j['cel'] as Map?) ?? {}).entries) e.key as String: (e.value as num).toInt()},
       );
 
-  Cena copia() => Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, celulas: Map.of(celulas));
+  Cena copia() => Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, celulas: Map.of(celulas), px: px + 30, py: py + 30);
 }
 
 class Projeto {

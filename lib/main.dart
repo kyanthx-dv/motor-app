@@ -82,6 +82,7 @@ class _BlockyAppState extends State<BlockyApp> {
         title: 'Blocky',
         debugShowCheckedModeBanner: false,
         theme: temaBlocky(temaEscuro.value),
+        builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(0.9)), child: child!),
         home: const EntradaTela(),
       );
 }

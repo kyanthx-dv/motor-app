@@ -134,7 +134,8 @@ class _CenaTelaState extends State<CenaTela> {
   bool _mover = false;
   int _aba = 0;
   int _sel = 0;
-  bool _painelAberto = true;
+  double _altPainel = 220; // altura do painel (puxavel)
+  static const _alturas = [44.0, 220.0, 430.0];
   int? _ultimo;
 
   // camera (zoom + deslocamento), controlada a mao: 1 dedo pinta, 2 dedos movem/zoom
@@ -231,25 +232,25 @@ class _CenaTelaState extends State<CenaTela> {
                     Positioned(left: 12, top: 8, child: BotaoGrosso(icone: Icons.arrow_back, cor: mentaEditor, aoTocar: () => Navigator.pop(context))),
                     Positioned(
                       right: 10,
-                      top: 70,
+                      top: 62,
                       child: Column(children: [
-                        BotaoGrosso(icone: Icons.settings, rotulo: 'Config', cor: mentaEditor, largura: 66, aoTocar: () async {
+                        BotaoGrosso(icone: Icons.settings, rotulo: 'Config', cor: mentaEditor, largura: 56, aoTocar: () async {
                           await abrirConfigCena(context, c);
                           _ajustou = false;
                           if (mounted) setState(() {});
                         }),
                         const SizedBox(height: 8),
-                        BotaoGrosso(icone: Icons.pin, rotulo: 'Dados', cor: mentaEditor, largura: 66, aoTocar: () => emBreve(context, 'Dados do jogo')),
+                        BotaoGrosso(icone: Icons.pin, rotulo: 'Dados', cor: mentaEditor, largura: 56, aoTocar: () => emBreve(context, 'Dados do jogo')),
                         const SizedBox(height: 8),
-                        BotaoGrosso(icone: Icons.save, rotulo: 'Salvar', cor: mentaEditor, largura: 66, aoTocar: () {
+                        BotaoGrosso(icone: Icons.save, rotulo: 'Salvar', cor: mentaEditor, largura: 56, aoTocar: () {
                           RepositorioProjetos.instancia.salvar();
                           aviso(context, 'Salvo.');
                         }),
                         const SizedBox(height: 8),
-                        BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 66, aoTocar: () => emBreve(context, 'Executar (engine)')),
+                        BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 56, aoTocar: () => emBreve(context, 'Executar (engine)')),
                       ]),
                     ),
-                    Positioned(left: 12, bottom: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(color: mentaEditor, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF111111), width: 2.5)), child: Text('${c.nome} · ${c.largura}×${c.altura}', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800)))),
+                    Positioned(left: 12, bottom: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: mentaEditor, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFF111111), width: 2)), child: Text('${c.nome} · ${c.largura}×${c.altura}', style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w800)))),
                     Positioned(
                       right: 12,
                       bottom: 10,
@@ -266,19 +267,21 @@ class _CenaTelaState extends State<CenaTela> {
           }),
         ),
         AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          height: _painelAberto ? 250 : 48,
-          decoration: const BoxDecoration(color: Color(0xFF1B1D22), borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          duration: const Duration(milliseconds: 90),
+          height: _altPainel,
+          decoration: const BoxDecoration(color: Color(0xFF1B1D22), borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
           child: ClipRect(
             child: Column(children: [
+              // puxe a alca para cima/baixo; ao soltar, encaixa em fechado / medio / alto
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _painelAberto = !_painelAberto),
-                child: SizedBox(height: 48, child: Center(child: Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(3))))),
+                onVerticalDragUpdate: (d) => setState(() => _altPainel = (_altPainel - d.delta.dy).clamp(_alturas.first, _alturas.last)),
+                onVerticalDragEnd: (_) => setState(() => _altPainel = _alturas.reduce((x, y) => (x - _altPainel).abs() < (y - _altPainel).abs() ? x : y)),
+                onTap: () => setState(() => _altPainel = _altPainel > 100 ? _alturas.first : _alturas[1]),
+                child: SizedBox(height: 44, child: Center(child: Container(width: 46, height: 5, decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(3))))),
               ),
               SizedBox(
-                height: 42,
+                height: 36,
                 child: Row(children: [
                   for (var i = 0; i < _abas.length; i++)
                     Expanded(
@@ -286,7 +289,7 @@ class _CenaTelaState extends State<CenaTela> {
                         behavior: HitTestBehavior.opaque,
                         onTap: () => setState(() => _aba = i),
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text(_abas[i], style: TextStyle(fontSize: 17, color: _aba == i ? Colors.white : Colors.white54, fontWeight: _aba == i ? FontWeight.w800 : FontWeight.w500)),
+                          Text(_abas[i], style: TextStyle(fontSize: 15, color: _aba == i ? Colors.white : Colors.white54, fontWeight: _aba == i ? FontWeight.w800 : FontWeight.w500)),
                           const SizedBox(height: 4),
                           AnimatedContainer(duration: const Duration(milliseconds: 200), height: 3, width: _aba == i ? 28 : 0, decoration: BoxDecoration(color: azulEditor, borderRadius: BorderRadius.circular(2))),
                         ]),
@@ -297,9 +300,9 @@ class _CenaTelaState extends State<CenaTela> {
               Expanded(
                 child: GridView.count(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  crossAxisCount: 5,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
+                  crossAxisCount: 6,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
                   children: [
                     for (final i in itens)
                       Toque(
@@ -310,8 +313,8 @@ class _CenaTelaState extends State<CenaTela> {
                         }),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(color: const Color(0xFF2C2F37), borderRadius: BorderRadius.circular(14), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 3)),
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(color: const Color(0xFF2C2F37), borderRadius: BorderRadius.circular(11), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
                           child: CustomPaint(painter: _Miniatura(paleta[i])),
                         ),
                       ),
