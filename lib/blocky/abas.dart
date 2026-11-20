@@ -69,10 +69,40 @@ class _HomeAlta extends StatelessWidget {
   Widget build(BuildContext context) {
     final cont = jogosExemplo.take(4).toList();
     return ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
+      const Text('Seus projetos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 10),
+      SizedBox(
+        height: 84,
+        child: ListenableBuilder(
+          listenable: RepositorioProjetos.instancia,
+          builder: (context, _) => ListView(scrollDirection: Axis.horizontal, children: [
+            Toque(
+              aoTocar: () => novoJogo(context),
+              child: Container(width: 120, margin: const EdgeInsets.only(right: 10), decoration: BoxDecoration(color: Cores.acento.withAlpha(35), borderRadius: BorderRadius.circular(18)), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_rounded, color: Cores.acento, size: 28), Text('Novo jogo', style: TextStyle(color: Cores.acento, fontWeight: FontWeight.w800, fontSize: 13))])),
+            ),
+            for (final pr in RepositorioProjetos.instancia.projetos)
+              Toque(
+                aoTocar: () => _ir(context, ProjetoTela(projeto: pr)),
+                child: Container(
+                  width: 150,
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(18)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text(pr.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text('${pr.cenas.length} ${pr.cenas.length == 1 ? 'cena' : 'cenas'}', style: const TextStyle(color: Cores.texto2, fontSize: 12)),
+                  ]),
+                ),
+              ),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 20),
       Row(children: [
-        const Text('Continuar', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        const Text('Continuar jogando', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
         const Spacer(),
-        TextButton(onPressed: () {}, child: const Text('Ver tudo  ›')),
+        TextButton(onPressed: () {}, child: const Text('Ver tudo')),
       ]),
       SizedBox(
         height: 150,
@@ -245,7 +275,7 @@ class _CartaoPostState extends State<CartaoPost> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(20)),
       child: Toque(
         aoTocar: () => _ir(context, PostPagina(post: p)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -253,12 +283,12 @@ class _CartaoPostState extends State<CartaoPost> {
           Expanded(child: Align(alignment: Alignment.centerLeft, child: ChipAutor(p.autor, legenda: '11 nov'))),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () => emBreve(context, 'Opções')),
         ]),
-        const SizedBox(height: 8),
-        AspectRatio(aspectRatio: 16 / 9, child: Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, video: p.video, tamanhoIcone: 56)),
+        const SizedBox(height: 6),
+        Text(p.titulo, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 3),
+        Text(p.descricao, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2)),
         const SizedBox(height: 10),
-        Text(p.titulo, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 2),
-        Text(p.descricao, maxLines: 3, overflow: TextOverflow.ellipsis),
+        AspectRatio(aspectRatio: 21 / 9, child: Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, video: p.video, tamanhoIcone: 40)),
         const SizedBox(height: 6),
         Row(children: [
           IconButton(icon: IconeAnim(ligado: _curtiu, ligadoIcone: Icons.favorite, desligadoIcone: Icons.favorite_border, cor: Colors.redAccent), onPressed: () => setState(() => _curtiu = !_curtiu)),
@@ -330,9 +360,9 @@ class PerfilAba extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Align(alignment: Alignment.centerRight, child: IconButton(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: () => _menuPerfil(context))),
+                Align(alignment: Alignment.centerRight, child: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: () => _menuPerfil(context))),
                 Row(children: [
-                  const AvatarUsuario('kyanthx', raio: 46),
+                  const AvatarUsuario('kyanthx', raio: 44, anel: true),
                   const Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_Numero('48', 'Seguindo'), _Numero('1,2k', 'Seguidores'), _Numero('24', 'Favoritos')])),
                 ]),
                 const SizedBox(height: 12),
@@ -357,7 +387,7 @@ class PerfilAba extends StatelessWidget {
             builder: (_, __) => ListView(padding: const EdgeInsets.all(12), children: [
               for (final pr in RepositorioProjetos.instancia.projetos) _LinhaProjeto(pr),
               for (final j in meus) _LinhaJogo(j),
-              if (RepositorioProjetos.instancia.projetos.isEmpty && meus.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Toque em ＋ > Jogo para criar o primeiro.', style: TextStyle(color: Cores.texto2)))),
+              if (RepositorioProjetos.instancia.projetos.isEmpty && meus.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Toque em Novo jogo para criar o primeiro.', style: TextStyle(color: Cores.texto2)))),
             ]),
           ),
           const Center(child: Text('Seus assets publicados aparecem aqui.', style: TextStyle(color: Cores.texto2))),
@@ -398,12 +428,12 @@ class _LinhaProjeto extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
                 Row(children: [
-                  Flexible(child: Text(p.nome, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18))),
-                  const SizedBox(width: 8),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFFF5C7A), borderRadius: BorderRadius.circular(6)), child: const Text('Em dev', style: TextStyle(fontSize: 12, color: Colors.white))),
+                  const _Estado('Em dev', Color(0xFFF59E0B)),
+                  Flexible(child: Text(' · ${p.cenas.length} ${p.cenas.length == 1 ? 'cena' : 'cenas'} · ${rotuloOrientacao(p.orientacao)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2, fontSize: 12))),
                 ]),
-                Text('${p.cenas.length} ${p.cenas.length == 1 ? 'cena' : 'cenas'} · ${rotuloOrientacao(p.orientacao)}', style: const TextStyle(color: Cores.texto2)),
               ]),
             ),
             IconButton(
@@ -448,16 +478,9 @@ class _LinhaJogo extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Flexible(child: Text(j.titulo, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18))),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: Cores.verde, borderRadius: BorderRadius.circular(6)),
-                    child: Text('Publicado', style: const TextStyle(fontSize: 12, color: Colors.white)),
-                  ),
-                ]),
-                Text('${abreviar(j.visitas)} visitas', style: const TextStyle(color: Cores.texto2)),
+                Text(j.titulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
+                Row(children: [const _Estado('Publicado', Cores.verde), Text(' · ${abreviar(j.visitas)} visitas', style: const TextStyle(color: Cores.texto2, fontSize: 12))]),
               ]),
             ),
             IconButton(icon: const Icon(Icons.more_vert), onPressed: () => emBreve(context, 'Opções do jogo')),
@@ -513,5 +536,19 @@ class _Numero extends StatelessWidget {
   Widget build(BuildContext context) => Column(children: [
         Text(valor, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
         Text(rotulo, style: const TextStyle(color: Cores.texto2, fontSize: 12)),
+      ]);
+}
+
+/// Estado do jogo: bolinha colorida + texto discreto (sem selo chamativo).
+class _Estado extends StatelessWidget {
+  const _Estado(this.texto, this.cor);
+  final String texto;
+  final Color cor;
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 7, height: 7, decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
+        const SizedBox(width: 5),
+        Text(texto, style: TextStyle(color: cor, fontSize: 12, fontWeight: FontWeight.w700)),
       ]);
 }

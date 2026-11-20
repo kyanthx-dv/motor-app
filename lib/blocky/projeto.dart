@@ -200,7 +200,6 @@ class _ProjetoTelaState extends State<ProjetoTela> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.black,
         body: SafeArea(
           child: Column(children: [
             Padding(
@@ -222,7 +221,7 @@ class _ProjetoTelaState extends State<ProjetoTela> {
                 return Stack(children: [
                 Container(
                   margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
-                  decoration: BoxDecoration(color: const Color(0xFF64C8F0), borderRadius: BorderRadius.circular(24)),
+                  decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(24)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: InteractiveViewer(
@@ -257,21 +256,12 @@ class _ProjetoTelaState extends State<ProjetoTela> {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
               child: Row(children: [
-                Expanded(child: _grande(Icons.upload, 'Publicar', azulEditor, () => emBreve(context, 'Publicar'))),
+                Expanded(child: OutlinedButton.icon(onPressed: () => emBreve(context, 'Publicar'), icon: const Icon(Icons.upload_rounded), label: const Text('Publicar'))),
                 const SizedBox(width: 12),
-                Expanded(child: _grande(Icons.add_location_alt, 'Nova cena', mentaEditor, _novaCena)),
+                Expanded(child: BotaoPrimario(texto: 'Nova cena', icone: Icons.add_rounded, altura: 46, aoTocar: _novaCena)),
               ]),
             ),
           ]),
-        ),
-      );
-
-  Widget _grande(IconData i, String t, Color cor, VoidCallback f) => Toque(
-        aoTocar: f,
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0xFF111111), width: 2)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(i, color: Colors.black87, size: 20), const SizedBox(width: 6), Text(t, style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.w800))]),
         ),
       );
 
@@ -309,27 +299,27 @@ class _ProjetoTelaState extends State<ProjetoTela> {
           width: _cw,
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: const Color(0xFF111111), width: 2),
-            boxShadow: erguido ? const [BoxShadow(color: Colors.black38, blurRadius: 12, offset: Offset(0, 6))] : null,
+            color: Cores.cartao2,
+            borderRadius: BorderRadius.circular(16),
+            border: c.inicial ? Border.all(color: Cores.acento, width: 1.6) : null,
+            boxShadow: erguido ? const [BoxShadow(color: Colors.black45, blurRadius: 16, offset: Offset(0, 8))] : null,
           ),
-          child: DefaultTextStyle(
-            style: const TextStyle(color: Colors.black87),
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Text(rotuloFisica(c.fisica), style: const TextStyle(fontSize: 10)),
+                Text(rotuloFisica(c.fisica), style: const TextStyle(fontSize: 10, color: Cores.texto2)),
                 const Spacer(),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), decoration: BoxDecoration(color: rpg ? const Color(0xFF84CC16) : azulEditor, borderRadius: BorderRadius.circular(4)), child: const Text('Solo', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700))),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), decoration: BoxDecoration(color: (rpg ? const Color(0xFF84CC16) : const Color(0xFF38BDF8)).withAlpha(40), borderRadius: BorderRadius.circular(6)), child: Text('Solo', style: TextStyle(fontSize: 10, color: rpg ? const Color(0xFF84CC16) : const Color(0xFF38BDF8), fontWeight: FontWeight.w800))),
               ]),
               const SizedBox(height: 4),
               Center(child: Text(c.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
-              Center(child: Text('${c.largura}×${c.altura}', style: const TextStyle(fontSize: 10, color: Colors.black45))),
+              Center(child: Text('${c.largura}×${c.altura}', style: const TextStyle(fontSize: 10, color: Cores.texto2))),
               const SizedBox(height: 4),
               Row(children: [
-                if (c.inicial) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: mentaEditor, borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF111111), width: 1.5)), child: const Text('Inicial', style: TextStyle(fontSize: 10.5))),
+                if (c.inicial) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Cores.acento.withAlpha(50), borderRadius: BorderRadius.circular(8)), child: const Text('Inicial', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Cores.acento))),
                 const Spacer(),
-                GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _menuCena(c), child: const Padding(padding: EdgeInsets.all(2), child: Icon(Icons.settings, size: 18, color: Colors.black87))),
+                GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _menuCena(c), child: const Padding(padding: EdgeInsets.all(2), child: Icon(Icons.more_horiz, size: 20, color: Cores.texto2))),
               ]),
             ]),
           ),
@@ -342,7 +332,7 @@ class _ProjetoTelaState extends State<ProjetoTela> {
 class _PontosPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = Colors.white.withAlpha(70);
+    final p = Paint()..color = const Color(0xFF8A93A3).withAlpha(60);
     for (double x = 0; x < size.width; x += 40) {
       for (double y = 0; y < size.height; y += 40) {
         canvas.drawCircle(Offset(x, y), 1.6, p);

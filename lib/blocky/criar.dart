@@ -1,46 +1,28 @@
 import 'package:flutter/material.dart';
 
-import 'projeto.dart';
 import 'widgets.dart';
 
-void abrirMenuCriar(BuildContext context) {
-  Widget botao(BuildContext ctx, IconData i, Color cor, String nome, Widget? destino) => Expanded(child: InkWell(
-        borderRadius: BorderRadius.circular(80),
+/// Loja > Publicar: escolhe entre asset e PFP.
+void menuPublicar(BuildContext context) {
+  Widget opcao(BuildContext ctx, IconData i, String t, String d, bool pfp) => ListTile(
+        leading: CircleAvatar(backgroundColor: Cores.cartao2, child: Icon(i, color: Cores.acento)),
+        title: Text(t, style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text(d, style: const TextStyle(color: Cores.texto2)),
         onTap: () {
           Navigator.pop(ctx);
-          if (destino == null) {
-            novoJogo(context);
-          } else {
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => destino));
-          }
+          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => NovoItemTela(pfp: pfp)));
         },
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            CircleAvatar(radius: 30, backgroundColor: Cores.cartao2, child: Icon(i, color: cor, size: 30)),
-            const SizedBox(height: 8),
-            Text(nome, style: const TextStyle(fontSize: 15)),
-          ]),
-        ),
-      ));
+      );
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: Cores.cartao,
     builder: (ctx) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+        padding: const EdgeInsets.fromLTRB(8, 18, 8, 12),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(children: [
-            botao(ctx, Icons.sports_esports, const Color(0xFF0EA5FF), 'Jogo', null),
-            botao(ctx, Icons.shopping_bag, const Color(0xFFFF7A33), 'Assets', const NovoItemTela(pfp: false)),
-            botao(ctx, Icons.face, const Color(0xFF22C55E), 'PFP', const NovoItemTela(pfp: true)),
-            botao(ctx, Icons.article, const Color(0xFFFF5C7A), 'Post', const NovoPostTela()),
-          ]),
-          const SizedBox(height: 18),
-          InkWell(
-            onTap: () => Navigator.pop(ctx),
-            child: Container(width: 64, height: 40, decoration: BoxDecoration(color: const Color(0xFFFF5C7A), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.close, color: Colors.white)),
-          ),
+          const Text('Publicar na loja', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          opcao(ctx, Icons.inventory_2_outlined, 'Asset', 'Sprites, sons, tiles, efeitos', false),
+          opcao(ctx, Icons.face_outlined, 'PFP', 'Foto de perfil', true),
         ]),
       ),
     ),

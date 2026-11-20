@@ -250,7 +250,7 @@ class _CenaTelaState extends State<CenaTela> {
                         BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 56, aoTocar: () => emBreve(context, 'Executar (engine)')),
                       ]),
                     ),
-                    Positioned(left: 12, bottom: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: mentaEditor, borderRadius: BorderRadius.circular(11), border: Border.all(color: const Color(0xFF111111), width: 2)), child: Text('${c.nome} · ${c.largura}×${c.altura}', style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w800)))),
+                    Positioned(left: 12, bottom: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: Cores.cartao.withAlpha(235), borderRadius: BorderRadius.circular(12)), child: Text('${c.nome} · ${c.largura}×${c.altura}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)))),
                     Positioned(
                       right: 12,
                       bottom: 10,
@@ -269,7 +269,7 @@ class _CenaTelaState extends State<CenaTela> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 90),
           height: _altPainel,
-          decoration: const BoxDecoration(color: Color(0xFF1B1D22), borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+          decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
           child: ClipRect(
             child: Column(children: [
               // puxe a alca para cima/baixo; ao soltar, encaixa em fechado / medio / alto
@@ -278,7 +278,7 @@ class _CenaTelaState extends State<CenaTela> {
                 onVerticalDragUpdate: (d) => setState(() => _altPainel = (_altPainel - d.delta.dy).clamp(_alturas.first, _alturas.last)),
                 onVerticalDragEnd: (_) => setState(() => _altPainel = _alturas.reduce((x, y) => (x - _altPainel).abs() < (y - _altPainel).abs() ? x : y)),
                 onTap: () => setState(() => _altPainel = _altPainel > 100 ? _alturas.first : _alturas[1]),
-                child: SizedBox(height: 44, child: Center(child: Container(width: 46, height: 5, decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(3))))),
+                child: SizedBox(height: 44, child: Center(child: Container(width: 46, height: 5, decoration: BoxDecoration(color: Cores.texto2, borderRadius: BorderRadius.circular(3))))),
               ),
               SizedBox(
                 height: 36,
@@ -289,7 +289,7 @@ class _CenaTelaState extends State<CenaTela> {
                         behavior: HitTestBehavior.opaque,
                         onTap: () => setState(() => _aba = i),
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text(_abas[i], style: TextStyle(fontSize: 15, color: _aba == i ? Colors.white : Colors.white54, fontWeight: _aba == i ? FontWeight.w800 : FontWeight.w500)),
+                          Text(_abas[i], style: TextStyle(fontSize: 15, color: _aba == i ? (temaEscuro.value ? Colors.white : Colors.black87) : Cores.texto2, fontWeight: _aba == i ? FontWeight.w800 : FontWeight.w500)),
                           const SizedBox(height: 4),
                           AnimatedContainer(duration: const Duration(milliseconds: 200), height: 3, width: _aba == i ? 28 : 0, decoration: BoxDecoration(color: azulEditor, borderRadius: BorderRadius.circular(2))),
                         ]),
@@ -314,7 +314,7 @@ class _CenaTelaState extends State<CenaTela> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(color: const Color(0xFF2C2F37), borderRadius: BorderRadius.circular(11), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
+                          decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(11), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
                           child: CustomPaint(painter: _Miniatura(paleta[i])),
                         ),
                       ),
@@ -337,12 +337,12 @@ class _CenaPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final c = s.c;
     const cs = _CenaTelaState._cs;
-    canvas.drawRect(Offset.zero & size, Paint()..color = Color(c.corFundo));
-    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black.withAlpha(60)); // fora do mapa fica mais escuro
+    canvas.drawRect(Offset.zero & size, Paint()..color = Cores.fundo); // fora do mapa: neutro, no tema do app
     canvas.save();
     canvas.translate(s._desl.dx, s._desl.dy);
     canvas.scale(s._esc);
     final area = Rect.fromLTWH(0, 0, c.largura * cs, c.altura * cs);
+    canvas.drawRRect(RRect.fromRectAndRadius(area.inflate(2), const Radius.circular(6)), Paint()..color = Colors.white.withAlpha(30));
     canvas.drawRect(area, Paint()..color = Color(c.corFundo));
     // itens
     c.celulas.forEach((k, i) {
@@ -361,17 +361,15 @@ class _CenaPainter extends CustomPainter {
     for (var y = 0; y <= c.altura; y++) {
       canvas.drawLine(Offset(0, y * cs), Offset(area.width, y * cs), fina);
     }
-    canvas.drawRect(area, Paint()
-      ..color = Colors.black.withAlpha(170)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5 / s._esc);
+
     // numeros nos eixos (0 = canto inferior esquerdo)
-    final st = TextStyle(color: Colors.white.withAlpha(235), fontSize: 11, fontWeight: FontWeight.w700);
-    for (var x = 0; x < c.largura; x++) {
+    final st = TextStyle(color: Cores.texto2, fontSize: 11, fontWeight: FontWeight.w700);
+    final passo = s._esc >= 0.75 ? 1 : 5; // zoom afastado: numera de 5 em 5 (leitura limpa)
+    for (var x = 0; x < c.largura; x += passo) {
       final tp = TextPainter(text: TextSpan(text: '$x', style: st), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(x * cs + cs / 2 - tp.width / 2, area.height + 5));
     }
-    for (var y = 0; y < c.altura; y++) {
+    for (var y = 0; y < c.altura; y += passo) {
       final tp = TextPainter(text: TextSpan(text: '$y', style: st), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(-6 - tp.width, (c.altura - 1 - y) * cs + cs / 2 - tp.height / 2));
     }
