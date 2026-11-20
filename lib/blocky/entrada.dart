@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'casca.dart';
 import 'dados.dart';
+import 'abertura.dart';
 import 'widgets.dart';
 
 /// Login (modo demonstracao: ainda nao liga no Supabase).
@@ -43,7 +44,7 @@ class _EntradaTelaState extends State<EntradaTela> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.widgets_rounded, size: 72, color: Cores.acento),
+                  const LogoBlocky(tamanho: 84),
                   const SizedBox(height: 8),
                   const Text('Blocky', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800)),
                   const Text('Crie, jogue e compartilhe jogos 2D', style: TextStyle(color: Cores.texto2)),
@@ -60,7 +61,7 @@ class _EntradaTelaState extends State<EntradaTela> {
                     title: const Text('Tenho 13 anos ou mais', style: TextStyle(fontSize: 13)),
                   ),
                   const SizedBox(height: 8),
-                  SizedBox(width: double.infinity, height: 48, child: FilledButton(onPressed: _entrar, child: const Text('Entrar'))),
+                  SizedBox(width: double.infinity, child: BotaoPrimario(texto: 'Entrar', aoTocar: _entrar)),
                   const SizedBox(height: 8),
                   SizedBox(width: double.infinity, height: 48, child: OutlinedButton(onPressed: _criar, child: const Text('Criar conta'))),
                   const SizedBox(height: 16),

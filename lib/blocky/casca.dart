@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'abas.dart';
 import 'criar.dart';
+import 'widgets.dart';
 
 /// Estrutura principal: 4 abas + botao ＋ no meio da barra de baixo.
 class Casca extends StatefulWidget {
@@ -42,25 +43,35 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
       body: SafeArea(
         child: FadeTransition(opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut), child: IndexedStack(index: _aba, children: const [JogosAba(), AssetsAba(), PostsAba(), PerfilAba()])),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: ativo,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-        onDestinationSelected: _tocar,
-        destinations: [
-          for (var i = 0; i < _icones.length; i++)
-            if (i == 2)
-              NavigationDestination(
-                icon: Container(
-                  width: 54,
-                  height: 36,
-                  decoration: BoxDecoration(color: const Color(0xFF0EA5FF), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.add, color: Colors.white, size: 28),
-                ),
-                label: 'Criar',
-              )
-            else
-              NavigationDestination(icon: Icon(_icones[i]), selectedIcon: Icon(_icones2[i]), label: '$i'),
-        ],
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+          height: 64,
+          decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black.withAlpha(temaEscuro.value ? 120 : 30), blurRadius: 20, offset: const Offset(0, 6))]),
+          child: Row(children: [
+            for (var i = 0; i < _icones.length; i++)
+              Expanded(
+                child: i == 2
+                    ? Toque(
+                        aoTocar: () => _tocar(2),
+                        child: Center(child: Container(width: 52, height: 40, decoration: BoxDecoration(gradient: degradeMarca, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Cores.acento.withAlpha(90), blurRadius: 12, offset: const Offset(0, 4))]), child: const Icon(Icons.add, color: Colors.white, size: 28))),
+                      )
+                    : GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _tocar(i),
+                        child: Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(color: ativo == i ? Cores.acento.withAlpha(45) : Colors.transparent, borderRadius: BorderRadius.circular(16)),
+                            child: Icon(ativo == i ? _icones2[i] : _icones[i], color: ativo == i ? Cores.acento : Cores.texto2, size: 26),
+                          ),
+                        ),
+                      ),
+              ),
+          ]),
+        ),
       ),
     );
   }
