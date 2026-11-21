@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 /// Icones do Blocky (Material arredondado): um unico conjunto, tracos arredondados. Troque aqui para mudar o app todo.
 class Ic {
   Ic._();
+  static const IconData responder = Icons.reply_rounded;
+  static const IconData compartilhar = Icons.send_rounded;
+  static const IconData volta10 = Icons.replay_10_rounded;
+  static const IconData avanca10 = Icons.forward_10_rounded;
+  static const IconData pausa = Icons.pause_rounded;
   static const IconData paisagem = Icons.stay_current_landscape_outlined;
   static const IconData retrato = Icons.stay_current_portrait_outlined;
   static const IconData menos = Icons.remove_rounded;

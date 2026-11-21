@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mime/mime.dart';
+import 'dart:ui' show PlatformDispatcher;
 import 'blocky/abertura.dart';
+import 'blocky/avisos.dart';
 import 'blocky/projetos.dart';
 import 'blocky/servidor.dart';
 import 'blocky/widgets.dart';
@@ -36,6 +38,14 @@ Future<HttpServer> iniciarServidor() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (d) {
+    Avisos.add(Nivel.erro, d.exceptionAsString());
+    FlutterError.presentError(d);
+  };
+  PlatformDispatcher.instance.onError = (e, s) {
+    Avisos.add(Nivel.erro, '$e');
+    return true;
+  };
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final servidor = await iniciarServidor();
   portaLocal = servidor.port;

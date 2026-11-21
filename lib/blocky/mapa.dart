@@ -135,8 +135,8 @@ class _CenaTelaState extends State<CenaTela> {
   bool _mover = false;
   int _aba = 0;
   int _sel = 0;
-  double _altPainel = 150; // altura do painel (puxavel)
-  static const _alturas = [52.0, 150.0, 380.0];
+  double _altPainel = 210; // altura do painel (puxavel)
+  static const _alturas = [52.0, 210.0, 400.0];
   int? _ultimo;
 
   // desfazer / refazer: cada traco guarda o valor anterior das celulas tocadas
@@ -164,8 +164,8 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _ajustar(Size s) {
     final mw = c.largura * _cs, mh = c.altura * _cs;
-    _esc = math.min((s.width - 70) / mw, (s.height - 130) / mh).clamp(0.3, 1.6);
-    _desl = Offset((s.width - mw * _esc) / 2 + 14, (s.height - mh * _esc) / 2 + 10);
+    _esc = math.min((s.width - 96) / mw, (s.height - 130) / mh).clamp(0.3, 1.6);
+    _desl = Offset((s.width - mw * _esc) / 2 + 30, (s.height - mh * _esc) / 2 + 10);
     _ajustou = true;
   }
 

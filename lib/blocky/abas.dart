@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'icones.dart';
 import 'busca.dart';
+import 'avisos.dart';
+import 'comentarios.dart';
 import 'dados.dart';
+import 'video.dart';
 import 'editor_web.dart';
 import 'entrada.dart';
 import 'detalhes.dart';
@@ -278,7 +281,7 @@ class _CartaoPostState extends State<CartaoPost> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(20)),
       child: Toque(
-        aoTocar: () => _ir(context, PostPagina(post: p)),
+        aoTocar: () => _ir(context, p.video ? VideoPostTela(inicial: p) : PostPagina(post: p)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Align(alignment: Alignment.centerLeft, child: ChipAutor(p.autor, legenda: '11 nov'))),
@@ -306,44 +309,6 @@ class _CartaoPostState extends State<CartaoPost> {
   }
 }
 
-void abrirComentarios(BuildContext context, List<Comentario> lista) {
-  final itens = List<Comentario>.of(lista);
-  final campo = TextEditingController();
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Cores.cartao,
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setS) => Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${itens.length} comentários', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Flexible(
-            child: ListView(shrinkWrap: true, children: [
-              if (itens.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Vazio', style: TextStyle(color: Cores.texto2)))),
-              for (final c in itens) ListTile(dense: true, leading: CircleAvatar(radius: 16, child: Text(c.autor[0].toUpperCase())), title: Text(c.autor, style: const TextStyle(color: Cores.texto2, fontSize: 13)), subtitle: Text(c.texto, style: const TextStyle(fontSize: 15))),
-            ]),
-          ),
-          Row(children: [
-            Expanded(child: TextField(controller: campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
-            const SizedBox(width: 8),
-            FilledButton(
-              
-              onPressed: () {
-                final t = campo.text.trim();
-                if (t.isEmpty) return;
-                setS(() => itens.add(Comentario('você', t)));
-                campo.clear();
-              },
-              child: const Text('Enviar'),
-            ),
-          ]),
-        ]),
-      ),
-    ),
-  );
-}
 
 // ---------------------------------------------------------------- Perfil
 
@@ -504,6 +469,13 @@ void _menuPerfil(BuildContext context) => showModalBottomSheet<void>(
                         emBreve(context, t);
                       },
                     ),
+                  ListTile(
+                    title: const Center(child: Text('Avisos e erros')),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      abrirAvisos(context);
+                    },
+                  ),
                   SwitchListTile(secondary: Icon(escuro ? Ic.lua : Ic.sol), title: const Text('Tema preto'), value: escuro, onChanged: (v) => temaEscuro.value = v),
                   ListTile(
                     title: const Center(child: Text('Sair', style: TextStyle(color: Colors.redAccent))),

@@ -6,6 +6,7 @@ import 'icones.dart';
 import 'package:flutter/services.dart';
 
 import 'perfil_publico.dart';
+import 'comentarios.dart';
 import 'dados.dart';
 import 'widgets.dart';
 
@@ -20,22 +21,13 @@ class JogoPagina extends StatefulWidget {
 class _JogoPaginaState extends State<JogoPagina> {
   bool _curtiu = false;
   bool _fav = false;
-  final _campo = TextEditingController();
-  late final List<Comentario> _coments = List.of(widget.jogo.comentarios);
+  late final ControleComentarios _cc = ControleComentarios(widget.jogo.comentarios);
 
   @override
   void dispose() {
-    _campo.dispose();
+    _cc.dispose();
     super.dispose();
   }
-
-  Widget _acao(IconData i, String n, VoidCallback f, {Color? cor}) => InkWell(
-        onTap: f,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-          child: Column(children: [Icon(i, size: 34, color: cor), const SizedBox(height: 2), Text(n, style: const TextStyle(color: Cores.texto2))]),
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +47,7 @@ class _JogoPaginaState extends State<JogoPagina> {
                   Text(j.titulo, style: const TextStyle(fontSize: 22)),
                   Text('${abreviar(j.visitas)} visitas · ${rotuloOrientacao(j.orientacao)}', style: const TextStyle(color: Cores.texto2)),
                   const SizedBox(height: 14),
-                  BotaoPrimario(texto: 'Jogar', icone: Ic.play, cor: const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF16A34A)]), aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
+                  BotaoPrimario(pulsa: true, texto: 'Jogar', icone: Ic.play, cor: const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF16A34A)]), aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
                 ]),
               ),
             ),
@@ -66,39 +58,19 @@ class _JogoPaginaState extends State<JogoPagina> {
                 const SizedBox(height: 14),
                 Text(j.descricao),
                 const SizedBox(height: 14),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _acao(_curtiu ? Ic.coracaoCheio : Ic.coracao, abreviar(j.curtidas + (_curtiu ? 1 : 0)), () => setState(() => _curtiu = !_curtiu), cor: _curtiu ? Colors.redAccent : null),
-                  _acao(_fav ? Ic.estrelaCheia : Ic.estrela, abreviar(j.favoritos + (_fav ? 1 : 0)), () => setState(() => _fav = !_fav), cor: _fav ? const Color(0xFFFBBF24) : null),
-                  _acao(Ic.presente, 'Doar', () => emBreve(context, 'Doações')),
+                Wrap(alignment: WrapAlignment.center, spacing: 10, runSpacing: 8, children: [
+                  PilulaAcao(icone: Ic.coracao, iconeAtivo: Ic.coracaoCheio, rotulo: abreviar(j.curtidas + (_curtiu ? 1 : 0)), ativo: _curtiu, cor: Colors.redAccent, aoTocar: () => setState(() => _curtiu = !_curtiu)),
+                  PilulaAcao(icone: Ic.estrela, iconeAtivo: Ic.estrelaCheia, rotulo: abreviar(j.favoritos + (_fav ? 1 : 0)), ativo: _fav, cor: const Color(0xFFFBBF24), aoTocar: () => setState(() => _fav = !_fav)),
+                  PilulaAcao(icone: Ic.presente, rotulo: 'Doar', aoTocar: () => emBreve(context, 'Doações')),
                 ]),
                 const Divider(),
-                Text('${_coments.length} comentários', style: const TextStyle(fontSize: 18)),
-                if (_coments.isEmpty) const Padding(padding: EdgeInsets.all(28), child: Center(child: Text('Vazio', style: TextStyle(color: Cores.texto2)))),
-                for (final c in _coments) ListTile(contentPadding: EdgeInsets.zero, leading: CircleAvatar(radius: 18, child: Text(c.autor[0].toUpperCase())), title: Text(c.autor, style: const TextStyle(color: Cores.texto2, fontSize: 13)), subtitle: Text(c.texto, style: const TextStyle(fontSize: 15))),
+                ListenableBuilder(listenable: _cc, builder: (_, __) => Text('${_cc.total} comentários', style: const TextStyle(fontSize: 18))),
+                ListaComentarios(_cc),
               ]),
             ),
           ]),
         ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8), // o Scaffold ja sobe com o teclado
-            child: Row(children: [
-              Expanded(child: TextField(controller: _campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
-              const SizedBox(width: 8),
-              FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size(72, 48)),
-                onPressed: () {
-                  final t = _campo.text.trim();
-                  if (t.isEmpty) return;
-                  setState(() => _coments.add(Comentario('você', t)));
-                  _campo.clear();
-                },
-                child: const Text('Enviar'),
-              ),
-            ]),
-          ),
-        ),
+        SafeArea(top: false, child: BarraComentario(_cc)),
       ]),
     );
   }
