@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'icones.dart';
 import 'cena_config.dart';
@@ -132,7 +134,13 @@ class _CenaTelaState extends State<CenaTela> {
 
   final _versao = ValueNotifier<int>(0);
   bool _apagar = false;
-  bool _mover = false;
+  // toque = selecionar; segurar = comecar a pintar/apagar; 1 dedo arrastando = mover o mapa
+  Timer? _seg;
+  bool _pintando = false;
+  bool _mexeu = false;
+  Offset _ini = Offset.zero;
+  int? _selX;
+  int? _selY;
   int _aba = 0;
   int _sel = 0;
   double _altPainel = 210; // altura do painel (puxavel)
@@ -157,6 +165,7 @@ class _CenaTelaState extends State<CenaTela> {
 
   @override
   void dispose() {
+    _seg?.cancel();
     _versao.dispose();
     RepositorioProjetos.instancia.salvar();
     super.dispose();
@@ -219,21 +228,51 @@ class _CenaTelaState extends State<CenaTela> {
     RepositorioProjetos.instancia.salvar();
   }
 
+  (int, int)? _celulaEm(Offset p) {
+    final w = (p - _desl) / _esc;
+    final x = (w.dx / _cs).floor();
+    final y = c.altura - 1 - (w.dy / _cs).floor();
+    if (w.dx < 0 || w.dy < 0 || x >= c.largura || y < 0 || y >= c.altura) return null;
+    return (x, y);
+  }
+
   void _terminou(ScaleEndDetails _) {
-    if (_traco.isEmpty) return;
-    _desfazer.add(_traco);
-    if (_desfazer.length > 100) _desfazer.removeAt(0);
-    _refazer.clear();
-    _traco = {};
+    _seg?.cancel();
+    if (_pintando && _traco.isNotEmpty) {
+      _desfazer.add(_traco);
+      if (_desfazer.length > 100) _desfazer.removeAt(0);
+      _refazer.clear();
+      _traco = {};
+      RepositorioProjetos.instancia.salvar(); // salva sozinho a cada traco
+    } else if (!_pintando && !_mexeu) {
+      final cel = _celulaEm(_ini); // toque curto: seleciona a celula (ou limpa a selecao)
+      _selX = cel?.$1;
+      _selY = cel?.$2;
+      _versao.value++;
+    }
+    _pintando = false;
     setState(() {});
-    RepositorioProjetos.instancia.salvar(); // salva sozinho a cada traco
   }
 
   void _comecou(ScaleStartDetails d) {
     _cont = d.pointerCount;
     _rebase(d.localFocalPoint);
     _ultimo = null;
-    if (d.pointerCount == 1 && !_mover) _pintarEm(d.localFocalPoint);
+    _pintando = false;
+    _mexeu = d.pointerCount > 1;
+    _ini = d.localFocalPoint;
+    _seg?.cancel();
+    if (d.pointerCount == 1) {
+      _seg = Timer(const Duration(milliseconds: 380), () {
+        if (_mexeu) return;
+        _pintando = true; // segurou parado: comeca a pintar (ou apagar)
+        HapticFeedback.selectionClick();
+        _selX = null;
+        _selY = null;
+        _pintarEm(_ini);
+        setState(() {});
+      });
+    }
   }
 
   void _rebase(Offset foco) {
@@ -246,17 +285,27 @@ class _CenaTelaState extends State<CenaTela> {
     if (d.pointerCount != _cont) {
       _cont = d.pointerCount;
       _rebase(d.localFocalPoint);
+      if (d.pointerCount > 1) {
+        _mexeu = true;
+        _seg?.cancel();
+      }
       return;
     }
-    if (d.pointerCount >= 2 || _mover) {
-      final nova = (_escIni * (d.pointerCount >= 2 ? d.scale : 1)).clamp(0.3, 3.0);
-      final mundo = (_focoIni - _deslIni) / _escIni; // ponto do mapa sob o foco inicial
-      _esc = nova;
-      _desl = d.localFocalPoint - mundo * nova;
-      _versao.value++;
-    } else {
+    if (_pintando && d.pointerCount == 1) {
       _pintarEm(d.localFocalPoint);
+      return;
     }
+    if (!_mexeu && (d.localFocalPoint - _ini).distance > 10) {
+      _mexeu = true; // arrastou antes de segurar: e mover o mapa
+      _seg?.cancel();
+      _rebase(d.localFocalPoint);
+    }
+    if (!_mexeu) return;
+    final nova = (_escIni * (d.pointerCount >= 2 ? d.scale : 1)).clamp(0.3, 3.0);
+    final mundo = (_focoIni - _deslIni) / _escIni; // ponto do mapa sob o foco inicial
+    _esc = nova;
+    _desl = d.localFocalPoint - mundo * nova;
+    _versao.value++;
   }
 
   Widget _ferramenta(IconData i, bool ativo, VoidCallback f) => Toque(
@@ -288,12 +337,11 @@ class _CenaTelaState extends State<CenaTela> {
           aoTocar: () => setState(() {
             _sel = i;
             _apagar = false;
-            _mover = false;
           }),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: _sel == i && !_apagar && !_mover ? azulEditor : Colors.transparent, width: 2.5)),
+            decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
             child: CustomPaint(painter: _Miniatura(paleta[i])),
           ),
         );
@@ -312,6 +360,47 @@ class _CenaTelaState extends State<CenaTela> {
                     onScaleEnd: _terminou,
                     child: CustomPaint(painter: _CenaPainter(this, _versao)),
                   ),
+                ),
+                ValueListenableBuilder<int>(
+                  valueListenable: _versao,
+                  builder: (_, __, ___) {
+                    final sx = _selX, sy = _selY;
+                    if (sx == null || sy == null) return const SizedBox.shrink();
+                    final cx = _desl.dx + (sx + 0.5) * _cs * _esc;
+                    final topo = _desl.dy + (c.altura - sy - 1) * _cs * _esc;
+                    final tem = c.celulas.containsKey('$sx,$sy');
+                    Widget b(IconData i, VoidCallback f) => Toque(
+                          aoTocar: f,
+                          child: Container(width: 38, height: 38, margin: const EdgeInsets.symmetric(horizontal: 2), decoration: BoxDecoration(color: Cores.cartao, shape: BoxShape.circle), child: Icon(i, size: 19)),
+                        );
+                    void aplicar(int? v) {
+                      final k = '$sx,$sy', antes = c.celulas[k];
+                      if (antes == v) return;
+                      _desfazer.add({k: antes});
+                      _refazer.clear();
+                      if (v == null) {
+                        c.celulas.remove(k);
+                      } else {
+                        c.celulas[k] = v;
+                      }
+                      RepositorioProjetos.instancia.salvar();
+                      setState(() {});
+                      _versao.value++;
+                    }
+                    return Positioned(
+                      left: (cx - 50).clamp(4.0, box.maxWidth - 104),
+                      top: (topo - 46).clamp(60.0, box.maxHeight - 50),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        b(Ic.mais, () => aplicar(_sel)),
+                        if (tem) b(Ic.lixeira, () => aplicar(null)),
+                        b(Ic.fechar, () {
+                          _selX = null;
+                          _selY = null;
+                          _versao.value++;
+                        }),
+                      ]),
+                    );
+                  },
                 ),
                 SafeArea(
                   child: Stack(children: [
@@ -357,20 +446,9 @@ class _CenaTelaState extends State<CenaTela> {
                       left: 10,
                       top: 64,
                       child: Column(children: [
-                        _ferramenta(Ic.pincel, !_apagar && !_mover, () => setState(() {
-                              _apagar = false;
-                              _mover = false;
-                            })),
+                        _ferramenta(Ic.mao, !_apagar, () => setState(() => _apagar = false)),
                         const SizedBox(height: 8),
-                        _ferramenta(Ic.borracha, _apagar, () => setState(() {
-                              _apagar = true;
-                              _mover = false;
-                            })),
-                        const SizedBox(height: 8),
-                        _ferramenta(Ic.mao, _mover, () => setState(() {
-                              _mover = !_mover;
-                              _apagar = false;
-                            })),
+                        _ferramenta(Ic.borracha, _apagar, () => setState(() => _apagar = true)),
                         const SizedBox(height: 8),
                         _ferramenta(Ic.centralizar, false, () {
                           _ajustou = false;
@@ -492,13 +570,22 @@ class _CenaPainter extends CustomPainter {
     // numeros nos eixos (0 = canto inferior esquerdo)
     final st = TextStyle(color: Cores.texto2, fontSize: 11, fontWeight: FontWeight.w700);
     final passo = s._esc >= 0.75 ? 1 : 5; // zoom afastado: numera de 5 em 5 (leitura limpa)
-    for (var x = 0; x < c.largura; x += passo) {
+    final numeros = s._esc >= 0.5; // bem longe: sem numeros
+    for (var x = 0; numeros && x < c.largura; x += passo) {
       final tp = TextPainter(text: TextSpan(text: '$x', style: st), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(x * cs + cs / 2 - tp.width / 2, area.height + 5));
     }
-    for (var y = 0; y < c.altura; y += passo) {
+    for (var y = 0; numeros && y < c.altura; y += passo) {
       final tp = TextPainter(text: TextSpan(text: '$y', style: st), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(-6 - tp.width, (c.altura - 1 - y) * cs + cs / 2 - tp.height / 2));
+    }
+    if (s._selX != null && s._selY != null) {
+      final r = Rect.fromLTWH(s._selX! * cs, (c.altura - 1 - s._selY!) * cs, cs, cs);
+      canvas.drawRect(r, Paint()..color = azulEditor.withAlpha(50));
+      canvas.drawRect(r, Paint()
+        ..color = azulEditor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 / s._esc);
     }
     canvas.restore();
   }
