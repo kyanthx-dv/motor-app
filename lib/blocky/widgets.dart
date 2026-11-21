@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'avisos.dart';
 import 'icones.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -91,30 +92,96 @@ class BarraAbas extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// Botao principal: degrade da marca, sem contorno.
-class BotaoPrimario extends StatelessWidget {
-  const BotaoPrimario({super.key, required this.texto, required this.aoTocar, this.icone, this.altura = 50, this.cor});
+class BotaoPrimario extends StatefulWidget {
+  const BotaoPrimario({super.key, required this.texto, required this.aoTocar, this.icone, this.altura = 50, this.cor, this.pulsa = false});
   final String texto;
   final IconData? icone;
   final VoidCallback? aoTocar;
   final double altura;
   final Gradient? cor;
+  final bool pulsa; // brilho suave pulsando (botoes importantes)
 
   @override
-  Widget build(BuildContext context) => Opacity(
-        opacity: aoTocar == null ? 0.45 : 1,
-        child: Toque(
-          aoTocar: aoTocar ?? () {},
-          child: Container(
-            height: altura,
+  State<BotaoPrimario> createState() => _BotaoPrimarioState();
+}
+
+class _BotaoPrimarioState extends State<BotaoPrimario> with SingleTickerProviderStateMixin {
+  late final AnimationController _p = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pulsa) _p.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _p.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final g = widget.cor ?? degradeMarca;
+    final brilho = g.colors.first;
+    return Opacity(
+      opacity: widget.aoTocar == null ? 0.45 : 1,
+      child: Toque(
+        aoTocar: widget.aoTocar ?? () {},
+        child: AnimatedBuilder(
+          animation: _p,
+          builder: (_, child) => Container(
+            height: widget.altura,
             padding: const EdgeInsets.symmetric(horizontal: 22),
-            decoration: BoxDecoration(gradient: cor ?? degradeMarca, borderRadius: BorderRadius.circular(altura / 2.8), boxShadow: [BoxShadow(color: Colors.black.withAlpha(temaEscuro.value ? 70 : 28), blurRadius: 8, offset: const Offset(0, 3))]),
-            child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-              if (icone != null) ...[Icon(icone, color: Colors.white, size: 22), const SizedBox(width: 8)],
-              Text(texto, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-            ]),
+            decoration: BoxDecoration(
+              gradient: g,
+              borderRadius: BorderRadius.circular(widget.altura / 2.8),
+              boxShadow: [
+                widget.pulsa
+                    ? BoxShadow(color: brilho.withAlpha((40 + 90 * _p.value).round()), blurRadius: 8 + 14 * _p.value, spreadRadius: 1.5 * _p.value, offset: const Offset(0, 3))
+                    : BoxShadow(color: Colors.black.withAlpha(temaEscuro.value ? 70 : 28), blurRadius: 8, offset: const Offset(0, 3)),
+              ],
+            ),
+            child: child,
           ),
+          child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+            if (widget.icone != null) ...[Icon(widget.icone, color: Colors.white, size: 22), const SizedBox(width: 8)],
+            Text(widget.texto, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          ]),
         ),
-      );
+      ),
+    );
+  }
+}
+
+/// Botao de acao em pilula (curtir, favoritar, doar...). Ativo = tingido com a cor.
+class PilulaAcao extends StatelessWidget {
+  const PilulaAcao({super.key, required this.icone, required this.rotulo, required this.aoTocar, this.iconeAtivo, this.ativo = false, this.cor});
+  final IconData icone;
+  final IconData? iconeAtivo;
+  final String rotulo;
+  final VoidCallback aoTocar;
+  final bool ativo;
+  final Color? cor;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = cor ?? Cores.acento;
+    return Toque(
+      aoTocar: aoTocar,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(color: ativo ? c.withAlpha(45) : Cores.cartao2, borderRadius: BorderRadius.circular(22)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          IconeAnim(ligado: ativo, ligadoIcone: iconeAtivo ?? icone, desligadoIcone: icone, cor: c, tamanho: 22),
+          const SizedBox(width: 8),
+          Text(rotulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ativo ? c : null)),
+        ]),
+      ),
+    );
+  }
 }
 
 /// Imagem de capa de exemplo: degrade com icone (no lugar de imagens reais).
@@ -196,6 +263,7 @@ void aviso(BuildContext context, String texto) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(texto), behavior: SnackBarBehavior.floating));
+  Avisos.add(Nivel.info, texto);
 }
 
 void emBreve(BuildContext context, String o) => aviso(context, '$o: em breve (precisa de segurança antes de ligar).');
