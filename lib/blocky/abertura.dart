@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'nuvem.dart';
+
 import 'entrada.dart';
 import 'widgets.dart';
 
@@ -45,7 +47,7 @@ class _AberturaTelaState extends State<AberturaTela> with SingleTickerProviderSt
       if (!mounted) return;
       Navigator.of(context).pushReplacement(PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => const EntradaTela(),
+        pageBuilder: (_, __, ___) => Nuvem.i.logado ? const BoasVindasTela() : const EntradaTela(),
         transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: CurvedAnimation(parent: a, curve: Curves.easeOut), child: child),
       ));
     });

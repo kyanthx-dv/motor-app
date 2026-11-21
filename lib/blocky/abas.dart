@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'icones.dart';
 import 'busca.dart';
 import 'avisos.dart';
+import 'nuvem.dart';
 import 'comentarios.dart';
 import 'dados.dart';
 import 'video.dart';
@@ -465,8 +466,10 @@ void _menuPerfil(BuildContext context) => showModalBottomSheet<void>(
                   SwitchListTile(secondary: Icon(escuro ? Ic.lua : Ic.sol), title: const Text('Tema preto'), value: escuro, onChanged: (v) => temaEscuro.value = v),
                   ListTile(
                     title: const Center(child: Text('Sair', style: TextStyle(color: Colors.redAccent))),
-                    onTap: () {
+                    onTap: () async {
                       Navigator.pop(ctx);
+                      await Nuvem.i.sair();
+                      if (!context.mounted) return;
                       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const EntradaTela()), (_) => false);
                     },
                   ),
