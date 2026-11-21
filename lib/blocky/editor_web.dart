@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+
+import 'icones.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -57,7 +59,7 @@ class _EditorWebTelaState extends State<EditorWebTela> {
               Positioned(
                 left: 4,
                 top: 4,
-                child: IconButton.filledTonal(tooltip: 'Voltar ao Blocky', icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
+                child: IconButton.filledTonal(tooltip: 'Voltar ao Blocky', icon: const Icon(Ic.voltar), onPressed: () => Navigator.of(context).pop()),
               ),
             ]),
           ),

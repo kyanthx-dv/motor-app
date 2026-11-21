@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'abas.dart';
 import 'detalhes.dart';
 import 'dados.dart';
@@ -34,11 +35,11 @@ class _BuscaTelaState extends State<BuscaTela> {
   Widget _inicio() => Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
-          title: TextField(controller: _campo, autofocus: true, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Buscar', prefixIcon: Icon(Icons.search))),
+          title: TextField(controller: _campo, autofocus: true, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Buscar', prefixIcon: Icon(Ic.busca))),
           actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar'))],
         ),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          const Row(children: [Text('Histórico', style: TextStyle(fontSize: 18)), Spacer(), Icon(Icons.delete_outline, color: Cores.texto2)]),
+          const Row(children: [Text('Histórico', style: TextStyle(fontSize: 18)), Spacer(), Icon(Ic.lixeira, color: Cores.texto2)]),
           const SizedBox(height: 10),
           Wrap(spacing: 10, runSpacing: 10, children: [for (final h in _historico) ActionChip(label: Text(h), onPressed: () => setState(() => _campo.text = h))]),
           const SizedBox(height: 24),
@@ -114,8 +115,8 @@ class _BuscaTelaState extends State<BuscaTela> {
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
             hintText: 'Buscar…',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: q.isEmpty ? null : IconButton(icon: const Icon(Icons.close), onPressed: () => setState(_campo.clear)),
+            prefixIcon: const Icon(Ic.busca),
+            suffixIcon: q.isEmpty ? null : IconButton(icon: const Icon(Ic.fechar), onPressed: () => setState(_campo.clear)),
           ),
         ),
       ),

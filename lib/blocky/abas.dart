@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'busca.dart';
 import 'dados.dart';
 import 'editor_web.dart';
@@ -33,7 +34,7 @@ class _Topo extends StatelessWidget {
       );
 }
 
-Widget _lupa(BuildContext c) => IconButton(tooltip: 'Buscar', icon: const Icon(Icons.search), onPressed: () => _ir(c, const BuscaTela()));
+Widget _lupa(BuildContext c) => IconButton(tooltip: 'Buscar', icon: const Icon(Ic.busca), onPressed: () => _ir(c, const BuscaTela()));
 
 // ---------------------------------------------------------------- Home (Jogos)
 
@@ -45,10 +46,10 @@ class JogosAba extends StatelessWidget {
         length: 5,
         child: Column(children: [
           _Topo('Início', [
-            ActionChip(avatar: const Icon(Icons.monetization_on, color: _ouro, size: 20), label: const Text('120'), onPressed: () => _ir(context, const CarteiraTela())),
+            ActionChip(avatar: const Icon(Ic.moeda, color: _ouro, size: 20), label: const Text('120'), onPressed: () => _ir(context, const CarteiraTela())),
             _lupa(context),
-            IconButton(tooltip: 'Notificações', icon: const Badge(label: Text('3'), child: Icon(Icons.notifications_none)), onPressed: () => _ir(context, const NotificacoesTela())),
-            IconButton(tooltip: 'Mensagens', icon: const Icon(Icons.chat_bubble_outline), onPressed: () => _ir(context, const ChatTela())),
+            IconButton(tooltip: 'Notificações', icon: const Badge(label: Text('3'), child: Icon(Ic.sino)), onPressed: () => _ir(context, const NotificacoesTela())),
+            IconButton(tooltip: 'Mensagens', icon: const Icon(Ic.balao), onPressed: () => _ir(context, const ChatTela())),
           ]),
           BarraAbas(const ['Em alta', 'Descobrir', 'Novos', 'Ranking', 'Seguindo'], rolavel: true),
           Expanded(
@@ -78,7 +79,7 @@ class _HomeAlta extends StatelessWidget {
           builder: (context, _) => ListView(scrollDirection: Axis.horizontal, children: [
             Toque(
               aoTocar: () => novoJogo(context),
-              child: Container(width: 120, margin: const EdgeInsets.only(right: 10), decoration: BoxDecoration(color: Cores.acento.withAlpha(35), borderRadius: BorderRadius.circular(18)), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_rounded, color: Cores.acento, size: 28), Text('Novo jogo', style: TextStyle(color: Cores.acento, fontWeight: FontWeight.w800, fontSize: 13))])),
+              child: Container(width: 120, margin: const EdgeInsets.only(right: 10), decoration: BoxDecoration(color: Cores.acento.withAlpha(35), borderRadius: BorderRadius.circular(18)), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Ic.mais, color: Cores.acento, size: 28), Text('Novo jogo', style: TextStyle(color: Cores.acento, fontWeight: FontWeight.w800, fontSize: 13))])),
             ),
             for (final pr in RepositorioProjetos.instancia.projetos)
               Toque(
@@ -167,7 +168,7 @@ class AssetsAba extends StatelessWidget {
   Widget build(BuildContext context) => DefaultTabController(
         length: 4,
         child: Column(children: [
-          _Topo('Loja', [_lupa(context), IconButton(icon: const Icon(Icons.grid_view), onPressed: () => emBreve(context, 'Meus itens'))]),
+          _Topo('Loja', [_lupa(context), IconButton(icon: const Icon(Ic.grade), onPressed: () => emBreve(context, 'Meus itens'))]),
           BarraAbas(const ['Para você', 'Seguindo', 'Assets', 'PFPs'], rolavel: true),
           Expanded(
             child: TabBarView(children: [
@@ -209,7 +210,7 @@ class _Grade extends StatelessWidget {
                       Text(itens[n].titulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
                       const SizedBox(height: 2),
                       Row(children: [
-                        const Icon(Icons.monetization_on, color: _ouro, size: 18),
+                        const Icon(Ic.moeda, color: _ouro, size: 18),
                         const SizedBox(width: 4),
                         Text(itens[n].preco == 0 ? 'Grátis' : '${itens[n].preco}', style: TextStyle(color: itens[n].preco == 0 ? Cores.verde : const Color(0xFFFF7A33), fontSize: 18)),
                       ]),
@@ -233,7 +234,7 @@ class PostsAba extends StatelessWidget {
   Widget build(BuildContext context) => DefaultTabController(
         length: 4,
         child: Column(children: [
-          _Topo('Comunidade', [_lupa(context), IconButton(icon: const Icon(Icons.emoji_events_outlined), onPressed: () => emBreve(context, 'Ranking de criadores'))]),
+          _Topo('Comunidade', [_lupa(context), IconButton(icon: const Icon(Ic.trofeu), onPressed: () => emBreve(context, 'Ranking de criadores'))]),
           BarraAbas(const ['Seguindo', 'Para você', 'Vídeo', 'Gamedev'], rolavel: true),
           Expanded(
             child: TabBarView(children: [
@@ -281,7 +282,7 @@ class _CartaoPostState extends State<CartaoPost> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Align(alignment: Alignment.centerLeft, child: ChipAutor(p.autor, legenda: '11 nov'))),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () => emBreve(context, 'Opções')),
+          IconButton(icon: const Icon(Ic.maisVert), onPressed: () => emBreve(context, 'Opções')),
         ]),
         const SizedBox(height: 6),
         Text(p.titulo, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
@@ -291,12 +292,12 @@ class _CartaoPostState extends State<CartaoPost> {
         AspectRatio(aspectRatio: 21 / 9, child: Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, video: p.video, tamanhoIcone: 40)),
         const SizedBox(height: 6),
         Row(children: [
-          IconButton(icon: IconeAnim(ligado: _curtiu, ligadoIcone: Icons.favorite, desligadoIcone: Icons.favorite_border, cor: Colors.redAccent), onPressed: () => setState(() => _curtiu = !_curtiu)),
+          IconButton(icon: IconeAnim(ligado: _curtiu, ligadoIcone: Ic.coracaoCheio, desligadoIcone: Ic.coracao, cor: Colors.redAccent), onPressed: () => setState(() => _curtiu = !_curtiu)),
           Text(abreviar(p.curtidas + (_curtiu ? 1 : 0))),
           const Spacer(),
-          IconButton(icon: IconeAnim(ligado: _fav, ligadoIcone: Icons.star, desligadoIcone: Icons.star_border, cor: _ouro), onPressed: () => setState(() => _fav = !_fav)),
+          IconButton(icon: IconeAnim(ligado: _fav, ligadoIcone: Ic.estrelaCheia, desligadoIcone: Ic.estrela, cor: _ouro), onPressed: () => setState(() => _fav = !_fav)),
           const Spacer(),
-          IconButton(icon: const Icon(Icons.chat_bubble_outline), onPressed: () => abrirComentarios(context, p.comentarios)),
+          IconButton(icon: const Icon(Ic.balao), onPressed: () => abrirComentarios(context, p.comentarios)),
           Text('${p.comentarios.length}'),
         ]),
       ]),
@@ -358,7 +359,7 @@ class PerfilAba extends StatelessWidget {
         headerSliverBuilder: (_, __) => [
           SliverToBoxAdapter(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CabecalhoPerfil(usuario: 'kyanthx', proprio: true, direita: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: () => _menuPerfil(context))),
+              CabecalhoPerfil(usuario: 'kyanthx', proprio: true, direita: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Ic.engrenagem), onPressed: () => _menuPerfil(context))),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -418,7 +419,7 @@ class _LinhaProjeto extends StatelessWidget {
         child: Toque(
           aoTocar: () => _ir(context, ProjetoTela(projeto: p)),
           child: Row(children: [
-            const SizedBox(width: 90, height: 90, child: Capa(cor1: Color(0xFF38BDF8), cor2: Color(0xFF0EA5E9), icone: Icons.sports_esports, tamanhoIcone: 36)),
+            const SizedBox(width: 90, height: 90, child: Capa(cor1: Color(0xFF38BDF8), cor2: Color(0xFF0EA5E9), icone: Ic.controle, tamanhoIcone: 36)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -431,7 +432,7 @@ class _LinhaProjeto extends StatelessWidget {
               ]),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Ic.lixeira),
               onPressed: () => showDialog<void>(
                 context: context,
                 builder: (ctx) => AlertDialog(
@@ -477,7 +478,7 @@ class _LinhaJogo extends StatelessWidget {
                 Row(children: [const _Estado('Publicado', Cores.verde), Text(' · ${abreviar(j.visitas)} visitas', style: const TextStyle(color: Cores.texto2, fontSize: 12))]),
               ]),
             ),
-            IconButton(icon: const Icon(Icons.more_vert), onPressed: () => emBreve(context, 'Opções do jogo')),
+            IconButton(icon: const Icon(Ic.maisVert), onPressed: () => emBreve(context, 'Opções do jogo')),
           ]),
         ),
       );
@@ -503,7 +504,7 @@ void _menuPerfil(BuildContext context) => showModalBottomSheet<void>(
                         emBreve(context, t);
                       },
                     ),
-                  SwitchListTile(secondary: Icon(escuro ? Icons.dark_mode : Icons.light_mode), title: const Text('Tema preto'), value: escuro, onChanged: (v) => temaEscuro.value = v),
+                  SwitchListTile(secondary: Icon(escuro ? Ic.lua : Ic.sol), title: const Text('Tema preto'), value: escuro, onChanged: (v) => temaEscuro.value = v),
                   ListTile(
                     title: const Center(child: Text('Sair', style: TextStyle(color: Colors.redAccent))),
                     onTap: () {

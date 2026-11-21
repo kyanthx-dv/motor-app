@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 /// Dados de EXEMPLO para desenhar e testar as telas. Quando o Supabase for ligado, estas listas viram consultas.
 
 enum Orientacao { paisagem, retrato, qualquer }
@@ -125,7 +126,7 @@ const jogosExemplo = <Jogo>[
     descricao: 'Converse com o aldeão, pegue poções e enfrente o slime. Feito com os modelos de RPG do Motor.',
     cor1: Color(0xFF16A34A),
     cor2: Color(0xFF065F46),
-    icone: Icons.castle,
+    icone: Ic.castelo,
     curtidas: 1280,
     favoritos: 340,
     visitas: 15400,
@@ -138,7 +139,7 @@ const jogosExemplo = <Jogo>[
     descricao: 'Pegue todas as moedas antes que o tempo acabe. Ideal para jogar com uma mão.',
     cor1: Color(0xFFF59E0B),
     cor2: Color(0xFFB45309),
-    icone: Icons.monetization_on,
+    icone: Ic.moeda,
     orientacao: Orientacao.retrato,
     curtidas: 860,
     favoritos: 120,
@@ -151,7 +152,7 @@ const jogosExemplo = <Jogo>[
     descricao: 'Partida rápida estilo Haxball, 1 contra 1 com física Matter.',
     cor1: Color(0xFF2563EB),
     cor2: Color(0xFF1E3A8A),
-    icone: Icons.sports_soccer,
+    icone: Ic.futebol,
     curtidas: 2210,
     favoritos: 560,
     visitas: 40200,
@@ -177,7 +178,7 @@ const jogosExemplo = <Jogo>[
     descricao: 'Desvie dos asteroides e bata seu recorde.',
     cor1: Color(0xFFDC2626),
     cor2: Color(0xFF7F1D1D),
-    icone: Icons.rocket_launch,
+    icone: Ic.foguete,
     curtidas: 300,
     favoritos: 45,
     visitas: 3200,
@@ -216,7 +217,7 @@ const postsExemplo = <Post>[
     autor: 'zed',
     cor1: Color(0xFFDC2626),
     cor2: Color(0xFF450A0A),
-    icone: Icons.rocket_launch,
+    icone: Ic.foguete,
     video: true,
     curtidas: 98,
   ),
@@ -227,19 +228,19 @@ const postsExemplo = <Post>[
     autor: 'luna',
     cor1: Color(0xFF65A30D),
     cor2: Color(0xFF1A2E05),
-    icone: Icons.park,
+    icone: Ic.arvore,
     curtidas: 340,
     comentarios: [Comentario('bob', 'Baixei, obrigado!'), Comentario('zed', 'Top')],
   ),
 ];
 
 const itensLojaExemplo = <ItemLoja>[
-  ItemLoja(id: 'a1', titulo: 'Pack de árvores', autor: 'luna', pfp: false, cor1: Color(0xFF65A30D), cor2: Color(0xFF1A2E05), icone: Icons.park),
-  ItemLoja(id: 'a2', titulo: 'Sons 8-bit', autor: 'zed', pfp: false, cor1: Color(0xFF9333EA), cor2: Color(0xFF3B0764), icone: Icons.music_note),
-  ItemLoja(id: 'a3', titulo: 'Tiles de masmorra', autor: 'kyanthx', pfp: false, cor1: Color(0xFF475569), cor2: Color(0xFF0F172A), icone: Icons.grid_view),
-  ItemLoja(id: 'a4', titulo: 'Efeitos de explosão', autor: 'luna', pfp: false, cor1: Color(0xFFF97316), cor2: Color(0xFF7C2D12), icone: Icons.local_fire_department, preco: 50),
-  ItemLoja(id: 'f1', titulo: 'Gatinho pixel', autor: 'luna', pfp: true, cor1: Color(0xFFEC4899), cor2: Color(0xFF831843), icone: Icons.pets),
-  ItemLoja(id: 'f2', titulo: 'Robô azul', autor: 'zed', pfp: true, cor1: Color(0xFF0EA5E9), cor2: Color(0xFF0C4A6E), icone: Icons.smart_toy),
+  ItemLoja(id: 'a1', titulo: 'Pack de árvores', autor: 'luna', pfp: false, cor1: Color(0xFF65A30D), cor2: Color(0xFF1A2E05), icone: Ic.arvore),
+  ItemLoja(id: 'a2', titulo: 'Sons 8-bit', autor: 'zed', pfp: false, cor1: Color(0xFF9333EA), cor2: Color(0xFF3B0764), icone: Ic.musica),
+  ItemLoja(id: 'a3', titulo: 'Tiles de masmorra', autor: 'kyanthx', pfp: false, cor1: Color(0xFF475569), cor2: Color(0xFF0F172A), icone: Ic.grade),
+  ItemLoja(id: 'a4', titulo: 'Efeitos de explosão', autor: 'luna', pfp: false, cor1: Color(0xFFF97316), cor2: Color(0xFF7C2D12), icone: Ic.fogo, preco: 50),
+  ItemLoja(id: 'f1', titulo: 'Gatinho pixel', autor: 'luna', pfp: true, cor1: Color(0xFFEC4899), cor2: Color(0xFF831843), icone: Ic.pata),
+  ItemLoja(id: 'f2', titulo: 'Robô azul', autor: 'zed', pfp: true, cor1: Color(0xFF0EA5E9), cor2: Color(0xFF0C4A6E), icone: Ic.robo2),
   ItemLoja(id: 'f3', titulo: 'Cavaleiro', autor: 'kyanthx', pfp: true, cor1: Color(0xFF64748B), cor2: Color(0xFF1E293B), icone: Icons.shield, preco: 30),
 ];
 

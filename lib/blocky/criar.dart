@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'widgets.dart';
 
 /// Loja > Publicar: escolhe entre asset e PFP.
@@ -21,8 +22,8 @@ void menuPublicar(BuildContext context) {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Publicar na loja', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
-          opcao(ctx, Icons.inventory_2_outlined, 'Asset', 'Sprites, sons, tiles, efeitos', false),
-          opcao(ctx, Icons.face_outlined, 'PFP', 'Foto de perfil', true),
+          opcao(ctx, Ic.pacote, 'Asset', 'Sprites, sons, tiles, efeitos', false),
+          opcao(ctx, Ic.rosto, 'PFP', 'Foto de perfil', true),
         ]),
       ),
     ),
@@ -70,15 +71,15 @@ class _NovoPostTelaState extends State<NovoPostTela> {
                 decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(14)),
                 child: Center(
                   child: _midia
-                      ? Column(mainAxisSize: MainAxisSize.min, children: [Icon(_video ? Icons.videocam : Icons.image, size: 44, color: Cores.verde), Text(_video ? 'Vídeo (exemplo)' : 'Imagem (exemplo)')])
-                      : const Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.add_photo_alternate_outlined, size: 44), Text('Toque para escolher imagem ou vídeo (obrigatório)')]),
+                      ? Column(mainAxisSize: MainAxisSize.min, children: [Icon(_video ? Ic.video : Ic.imagem, size: 44, color: Cores.verde), Text(_video ? 'Vídeo (exemplo)' : 'Imagem (exemplo)')])
+                      : const Column(mainAxisSize: MainAxisSize.min, children: [Icon(Ic.addImagem, size: 44), Text('Toque para escolher imagem ou vídeo (obrigatório)')]),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
           SegmentedButton<bool>(
-            segments: const [ButtonSegment(value: false, label: Text('Imagem'), icon: Icon(Icons.image)), ButtonSegment(value: true, label: Text('Vídeo'), icon: Icon(Icons.videocam))],
+            segments: const [ButtonSegment(value: false, label: Text('Imagem'), icon: Icon(Ic.imagem)), ButtonSegment(value: true, label: Text('Vídeo'), icon: Icon(Ic.video))],
             selected: {_video},
             onSelectionChanged: (s) => setState(() => _video = s.first),
           ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'icones.dart';
 import 'package:flutter/services.dart';
 
 import 'cena_config.dart';
@@ -95,9 +97,9 @@ class _ProjetoTelaState extends State<ProjetoTela> {
             const Text('Nova cena', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             Row(children: [
-              _tipo(ctx, Fisica.plataforma, Icons.directions_run, const Color(0xFF38BDF8), 'Plataforma', 'Gravidade, pulo, vista lateral'),
+              _tipo(ctx, Fisica.plataforma, Ic.corrida, const Color(0xFF38BDF8), 'Plataforma', 'Gravidade, pulo, vista lateral'),
               const SizedBox(width: 12),
-              _tipo(ctx, Fisica.rpg, Icons.map_outlined, const Color(0xFF84CC16), 'RPG', 'Vista de cima, 4 direções'),
+              _tipo(ctx, Fisica.rpg, Ic.mapa, const Color(0xFF84CC16), 'RPG', 'Vista de cima, 4 direções'),
             ]),
           ]),
         ),
@@ -130,10 +132,10 @@ class _ProjetoTelaState extends State<ProjetoTela> {
       backgroundColor: Cores.cartao,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.flag_outlined), title: const Text('Definir como cena inicial'), onTap: () => Navigator.pop(ctx, 'ini')),
-          ListTile(leading: const Icon(Icons.tune), title: const Text('Configurar'), onTap: () => Navigator.pop(ctx, 'cfg')),
-          ListTile(leading: const Icon(Icons.copy), title: const Text('Copiar'), onTap: () => Navigator.pop(ctx, 'cp')),
-          ListTile(leading: const Icon(Icons.delete_outline, color: Colors.redAccent), title: const Text('Excluir', style: TextStyle(color: Colors.redAccent)), onTap: () => Navigator.pop(ctx, 'del')),
+          ListTile(leading: const Icon(Ic.bandeira), title: const Text('Definir como cena inicial'), onTap: () => Navigator.pop(ctx, 'ini')),
+          ListTile(leading: const Icon(Ic.ajustes), title: const Text('Configurar'), onTap: () => Navigator.pop(ctx, 'cfg')),
+          ListTile(leading: const Icon(Ic.copiar), title: const Text('Copiar'), onTap: () => Navigator.pop(ctx, 'cp')),
+          ListTile(leading: const Icon(Ic.lixeira, color: Colors.redAccent), title: const Text('Excluir', style: TextStyle(color: Colors.redAccent)), onTap: () => Navigator.pop(ctx, 'del')),
         ]),
       ),
     );
@@ -174,7 +176,7 @@ class _ProjetoTelaState extends State<ProjetoTela> {
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<Orientacao>(
-                segments: const [ButtonSegment(value: Orientacao.paisagem, label: Text('Horizontal'), icon: Icon(Icons.stay_current_landscape)), ButtonSegment(value: Orientacao.retrato, label: Text('Vertical'), icon: Icon(Icons.stay_current_portrait))],
+                segments: const [ButtonSegment(value: Orientacao.paisagem, label: Text('Horizontal'), icon: Icon(Ic.paisagem)), ButtonSegment(value: Orientacao.retrato, label: Text('Vertical'), icon: Icon(Ic.retrato))],
                 selected: {ori},
                 onSelectionChanged: (s) => setS(() => ori = s.first),
               ),
@@ -205,13 +207,19 @@ class _ProjetoTelaState extends State<ProjetoTela> {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
               child: Row(children: [
-                BotaoGrosso(icone: Icons.arrow_back, cor: mentaEditor, aoTocar: () => Navigator.pop(context)),
+                Toque(aoTocar: () => Navigator.pop(context), child: Container(width: 42, height: 42, decoration: BoxDecoration(color: Cores.cartao, shape: BoxShape.circle), child: const Icon(Ic.voltar, size: 21))),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                     Text('${rotuloOrientacao(p.orientacao)} · ${p.cenas.length} ${p.cenas.length == 1 ? 'cena' : 'cenas'}', style: const TextStyle(color: Cores.texto2, fontSize: 12)),
                   ]),
+                ),
+                IconButton(onPressed: () => emBreve(context, 'Publicar'), icon: const Icon(Ic.subir)),
+                IconButton(onPressed: _configJogo, icon: const Icon(Ic.engrenagem)),
+                Toque(
+                  aoTocar: () => emBreve(context, 'Executar (engine)'),
+                  child: Container(width: 42, height: 42, decoration: const BoxDecoration(color: azulEditor, shape: BoxShape.circle), child: const Icon(Ic.play, size: 20, color: Colors.white)),
                 ),
               ]),
             ),
@@ -241,26 +249,10 @@ class _ProjetoTelaState extends State<ProjetoTela> {
                     ),
                   ),
                 ),
-                Positioned(
-                  right: 22,
-                  top: 16,
-                  child: Column(children: [
-                    BotaoGrosso(icone: Icons.settings, rotulo: 'Config', cor: mentaEditor, largura: 56, aoTocar: _configJogo),
-                    const SizedBox(height: 8),
-                    BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 56, aoTocar: () => emBreve(context, 'Executar (engine)')),
-                  ]),
-                ),
               ]);
               }),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
-              child: Row(children: [
-                Expanded(child: OutlinedButton.icon(onPressed: () => emBreve(context, 'Publicar'), icon: const Icon(Icons.upload_rounded), label: const Text('Publicar'))),
-                const SizedBox(width: 12),
-                Expanded(child: BotaoPrimario(texto: 'Nova cena', icone: Icons.add_rounded, altura: 46, aoTocar: _novaCena)),
-              ]),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(14, 6, 14, 12), child: BotaoPrimario(texto: 'Nova cena', icone: Ic.mais, altura: 48, aoTocar: _novaCena)),
           ]),
         ),
       );
@@ -319,7 +311,7 @@ class _ProjetoTelaState extends State<ProjetoTela> {
               Row(children: [
                 if (c.inicial) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Cores.acento.withAlpha(50), borderRadius: BorderRadius.circular(8)), child: const Text('Inicial', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Cores.acento))),
                 const Spacer(),
-                GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _menuCena(c), child: const Padding(padding: EdgeInsets.all(2), child: Icon(Icons.more_horiz, size: 20, color: Cores.texto2))),
+                GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _menuCena(c), child: const Padding(padding: EdgeInsets.all(2), child: Icon(Ic.maisHoriz, size: 20, color: Cores.texto2))),
               ]),
             ]),
           ),

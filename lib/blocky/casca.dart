@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'abas.dart';
 import 'criar.dart';
 import 'projeto.dart';
@@ -18,8 +19,8 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
   late final AnimationController _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 260), value: 1);
   int _aba = 0; // 0 Inicio, 1 Loja, 2 Comunidade, 3 Perfil
 
-  static const _icones = <IconData>[Icons.home_outlined, Icons.storefront_outlined, Icons.forum_outlined, Icons.person_outline];
-  static const _icones2 = <IconData>[Icons.home_rounded, Icons.storefront, Icons.forum, Icons.person];
+  static const _icones = <IconData>[Ic.casa, Ic.loja, Ic.comunidade, Ic.usuario];
+  static const _icones2 = <IconData>[Ic.casaCheia, Ic.lojaCheia, Ic.comunidadeCheia, Ic.usuarioCheio];
 
   @override
   void dispose() {
@@ -35,11 +36,11 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
   Widget? _acao() {
     switch (_aba) {
       case 1:
-        return _Acao(chave: 'loja', icone: Icons.upload_rounded, texto: 'Publicar', aoTocar: () => menuPublicar(context));
+        return _Acao(chave: 'loja', icone: Ic.subir, texto: 'Publicar', aoTocar: () => menuPublicar(context));
       case 2:
-        return _Acao(chave: 'post', icone: Icons.edit_rounded, texto: 'Postar', aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoPostTela())));
+        return _Acao(chave: 'post', icone: Ic.lapis, texto: 'Postar', aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoPostTela())));
       case 3:
-        return _Acao(chave: 'jogo', icone: Icons.add_rounded, texto: 'Novo jogo', aoTocar: () => novoJogo(context));
+        return _Acao(chave: 'jogo', icone: Ic.mais, texto: 'Novo jogo', aoTocar: () => novoJogo(context));
     }
     return null;
   }

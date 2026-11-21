@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'projetos.dart';
 import 'widgets.dart';
 
@@ -33,9 +34,9 @@ class _ConfigCenaState extends State<_ConfigCena> {
   }
 
   Widget _passo(int v, ValueChanged<int> mudou) => Row(children: [
-        IconButton.filledTonal(onPressed: v > mapaMin ? () => mudou(v - 1) : null, icon: const Icon(Icons.remove)),
+        IconButton.filledTonal(onPressed: v > mapaMin ? () => mudou(v - 1) : null, icon: const Icon(Ic.menos)),
         Expanded(child: Center(child: Text('$v', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)))),
-        IconButton.filledTonal(onPressed: v < mapaMax ? () => mudou(v + 1) : null, icon: const Icon(Icons.add)),
+        IconButton.filledTonal(onPressed: v < mapaMax ? () => mudou(v + 1) : null, icon: const Icon(Ic.mais)),
       ]);
 
   void _confirmar() {
@@ -68,7 +69,7 @@ class _ConfigCenaState extends State<_ConfigCena> {
             child: Row(children: [
               const SizedBox(width: 48),
               const Expanded(child: Center(child: Text('Configurar cena', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)))),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              IconButton(icon: const Icon(Ic.fechar), onPressed: () => Navigator.pop(context)),
             ]),
           ),
           Flexible(

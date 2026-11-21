@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'dados.dart';
 import 'perfil_publico.dart';
 import 'widgets.dart';
@@ -26,7 +27,7 @@ class _BotaoSeguirState extends State<BotaoSeguir> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(gradient: _seguindo ? null : degradeMarca, color: _seguindo ? Cores.cartao2 : null, borderRadius: BorderRadius.circular(17)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: Icon(_seguindo ? Icons.check : Icons.add, key: ValueKey<bool>(_seguindo), size: 16, color: _seguindo ? Cores.texto2 : Colors.white)),
+            AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: Icon(_seguindo ? Ic.ok : Ic.mais, key: ValueKey<bool>(_seguindo), size: 16, color: _seguindo ? Cores.texto2 : Colors.white)),
             const SizedBox(width: 4),
             Text(_seguindo ? 'Seguindo' : 'Seguir', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _seguindo ? Cores.texto2 : Colors.white)),
           ]),
@@ -46,14 +47,14 @@ class CarteiraTela extends StatelessWidget {
           appBar: AppBar(title: const Text('Carteira'), centerTitle: true),
           body: Column(children: [
             const SizedBox(height: 20),
-            const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.monetization_on, color: _ouro, size: 44), SizedBox(width: 8), Text('120', style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Color(0xFFFF7A33)))]),
+            const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Ic.moeda, color: _ouro, size: 44), SizedBox(width: 8), Text('120', style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: Color(0xFFFF7A33)))]),
             TextButton(
               onPressed: () => showDialog<void>(
                 context: context,
                 builder: (_) => AlertDialog(
                   title: const Text('Ganhar moedas'),
                   content: const Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.monetization_on, color: _ouro, size: 90),
+                    Icon(Ic.moeda, color: _ouro, size: 90),
                     Text('+100', style: TextStyle(fontSize: 28, color: Color(0xFFFF7A33))),
                     SizedBox(height: 8),
                     Text('Hoje as moedas vêm de anúncios. No futuro: BCoins comprados com dinheiro real.', textAlign: TextAlign.center, style: TextStyle(color: Cores.texto2)),
@@ -112,11 +113,11 @@ class NotificacoesTela extends StatelessWidget {
                 ),
             ]),
             ListView(children: const [
-              ListTile(leading: Icon(Icons.favorite_border), title: Text('luna curtiu seu jogo'), subtitle: Text('Mini-RPG da Vila')),
-              ListTile(leading: Icon(Icons.star_border), title: Text('zed favoritou seu asset')),
+              ListTile(leading: Icon(Ic.coracao), title: Text('luna curtiu seu jogo'), subtitle: Text('Mini-RPG da Vila')),
+              ListTile(leading: Icon(Ic.estrela), title: Text('zed favoritou seu asset')),
             ]),
-            ListView(children: const [ListTile(leading: Icon(Icons.chat_bubble_outline), title: Text('ana_01 comentou'), subtitle: Text('Muito legal o inventário!'))]),
-            ListView(children: [for (final a in avisosExemplo) ListTile(leading: const Icon(Icons.campaign_outlined), title: Text(a.titulo), subtitle: Text(a.texto))]),
+            ListView(children: const [ListTile(leading: Icon(Ic.balao), title: Text('ana_01 comentou'), subtitle: Text('Muito legal o inventário!'))]),
+            ListView(children: [for (final a in avisosExemplo) ListTile(leading: const Icon(Ic.aviso), title: Text(a.titulo), subtitle: Text(a.texto))]),
           ]),
         ),
       );
@@ -127,13 +128,13 @@ class ChatTela extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Mensagens'), centerTitle: true, actions: [IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => emBreve(context, 'Nova conversa'))]),
+        appBar: AppBar(title: const Text('Mensagens'), centerTitle: true, actions: [IconButton(icon: const Icon(Ic.maisCirculo), onPressed: () => emBreve(context, 'Nova conversa'))]),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          TextField(readOnly: true, onTap: () => emBreve(context, 'Buscar conversas'), decoration: const InputDecoration(hintText: 'Buscar', prefixIcon: Icon(Icons.search))),
+          TextField(readOnly: true, onTap: () => emBreve(context, 'Buscar conversas'), decoration: const InputDecoration(hintText: 'Buscar', prefixIcon: Icon(Ic.busca))),
           const SizedBox(height: 8),
           const ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(radius: 28, backgroundColor: Color(0xFF0EA5FF), child: Icon(Icons.campaign, color: Colors.white)),
+            leading: CircleAvatar(radius: 28, backgroundColor: Color(0xFF0EA5FF), child: Icon(Ic.aviso, color: Colors.white)),
             title: Text('Notificação do sistema'),
             subtitle: Text('Bem-vindo ao Blocky · hoje', style: TextStyle(color: Cores.texto2)),
           ),
