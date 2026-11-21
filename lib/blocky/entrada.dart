@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'icones.dart';
+import 'nuvem.dart';
 import 'casca.dart';
 import 'dados.dart';
 import 'abertura.dart';
+import 'avisos.dart';
 import 'widgets.dart';
 
-/// Login / criar conta (modo demonstracao: ainda nao liga no Supabase).
+/// Login / criar conta no Supabase (ou continuar como visitante, com dados de exemplo).
 class EntradaTela extends StatefulWidget {
   const EntradaTela({super.key});
 
@@ -21,6 +23,7 @@ class _EntradaTelaState extends State<EntradaTela> {
   bool _criar = false;
   bool _idade = false;
   bool _ver = false;
+  bool _carregando = false;
 
   @override
   void dispose() {
@@ -32,12 +35,36 @@ class _EntradaTelaState extends State<EntradaTela> {
 
   void _seguir() => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => const BoasVindasTela()));
 
-  void _enviar() {
+  Future<void> _enviar() async {
+    if (_carregando) return;
     if (_criar && !_idade) {
       aviso(context, 'É preciso ter 13 anos ou mais para criar conta.');
       return;
     }
-    _seguir();
+    if (_email.text.trim().isEmpty || _senha.text.isEmpty) {
+      aviso(context, 'Preencha e-mail e senha.');
+      return;
+    }
+    setState(() => _carregando = true);
+    try {
+      if (_criar) {
+        final entrou = await Nuvem.i.criarConta(_email.text, _senha.text, _usuario.text);
+        if (!entrou) {
+          if (!mounted) return;
+          aviso(context, 'Conta criada! Confirme o e-mail e depois entre.');
+          setState(() => _criar = false);
+          return;
+        }
+      } else {
+        await Nuvem.i.entrar(_email.text, _senha.text);
+      }
+      if (mounted) _seguir();
+    } on ErroNuvem catch (e) {
+      Avisos.add(Nivel.aviso, 'Login: ${e.msg}');
+      if (mounted) aviso(context, e.msg);
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
   }
 
   Widget _modo(String t, bool criar) {
@@ -118,10 +145,10 @@ class _EntradaTelaState extends State<EntradaTela> {
                               : Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => emBreve(context, 'Recuperar senha'), child: const Text('Esqueci a senha'))),
                         ),
                         const SizedBox(height: 8),
-                        BotaoPrimario(texto: _criar ? 'Criar conta' : 'Entrar', aoTocar: _enviar),
+                        BotaoPrimario(texto: _carregando ? 'Aguarde…' : (_criar ? 'Criar conta' : 'Entrar'), aoTocar: _carregando ? null : _enviar),
                         const SizedBox(height: 6),
                         TextButton(onPressed: _seguir, child: const Text('Continuar como visitante')),
-                        const Text('Modo demonstração: dados de exemplo.', textAlign: TextAlign.center, style: TextStyle(color: Cores.texto2, fontSize: 11)),
+                        const Text('Como visitante você vê dados de exemplo.', textAlign: TextAlign.center, style: TextStyle(color: Cores.texto2, fontSize: 11)),
                       ]),
                     ),
                   ),

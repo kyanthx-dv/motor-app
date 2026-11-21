@@ -6,6 +6,7 @@ import 'package:mime/mime.dart';
 import 'dart:ui' show PlatformDispatcher;
 import 'blocky/abertura.dart';
 import 'blocky/avisos.dart';
+import 'blocky/nuvem.dart';
 import 'blocky/projetos.dart';
 import 'blocky/servidor.dart';
 import 'blocky/widgets.dart';
@@ -50,6 +51,7 @@ Future<void> main() async {
   final servidor = await iniciarServidor();
   portaLocal = servidor.port;
   await RepositorioProjetos.instancia.carregar();
+  await Nuvem.i.carregar();
   runApp(const BlockyApp());
 }
 
