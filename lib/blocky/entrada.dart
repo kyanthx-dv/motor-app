@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'casca.dart';
 import 'dados.dart';
 import 'abertura.dart';
@@ -98,15 +99,15 @@ class _EntradaTelaState extends State<EntradaTela> {
                           curve: Curves.easeOutCubic,
                           alignment: Alignment.topCenter,
                           child: _criar
-                              ? Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: _usuario, decoration: const InputDecoration(hintText: 'Nome de usuário', prefixIcon: Icon(Icons.alternate_email))))
+                              ? Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: _usuario, decoration: const InputDecoration(hintText: 'Nome de usuário', prefixIcon: Icon(Ic.arroba))))
                               : const SizedBox(width: double.infinity),
                         ),
-                        TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'E-mail', prefixIcon: Icon(Icons.mail_outline))),
+                        TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'E-mail', prefixIcon: Icon(Ic.email))),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _senha,
                           obscureText: !_ver,
-                          decoration: InputDecoration(hintText: 'Senha (8+ caracteres)', prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_ver ? Icons.visibility_off_outlined : Icons.visibility_outlined), onPressed: () => setState(() => _ver = !_ver))),
+                          decoration: InputDecoration(hintText: 'Senha (8+ caracteres)', prefixIcon: const Icon(Ic.cadeado), suffixIcon: IconButton(icon: Icon(_ver ? Ic.olhoFechado : Ic.olho), onPressed: () => setState(() => _ver = !_ver))),
                         ),
                         AnimatedSize(
                           duration: const Duration(milliseconds: 240),
@@ -143,9 +144,9 @@ class BoasVindasTela extends StatelessWidget {
       };
 
   IconData _icone(String tipo) => switch (tipo) {
-        'novidade' => Icons.auto_awesome,
-        'erro' => Icons.warning_amber_rounded,
-        _ => Icons.lightbulb_outline,
+        'novidade' => Ic.brilho,
+        'erro' => Ic.alerta,
+        _ => Ic.ideia,
       };
 
   @override

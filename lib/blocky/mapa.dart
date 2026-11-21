@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'cena_config.dart';
 import 'projetos.dart';
 import 'widgets.dart';
@@ -10,7 +11,7 @@ enum Arte { grama, terra, pedra, agua, areia, icone }
 
 /// Item da paleta de exemplo (depois vira o catalogo real de assets da engine).
 class ItemPaleta {
-  const ItemPaleta(this.nome, this.aba, this.arte, this.cor, [this.icone = Icons.circle]);
+  const ItemPaleta(this.nome, this.aba, this.arte, this.cor, [this.icone = Ic.ponto]);
   final String nome;
   final String aba; // Tile | Deco | Ator | Objeto
   final Arte arte;
@@ -24,15 +25,15 @@ const paleta = <ItemPaleta>[
   ItemPaleta('Pedra', 'Tile', Arte.pedra, Color(0xFF9AA5B1)),
   ItemPaleta('Água', 'Tile', Arte.agua, Color(0xFF3BA7F0)),
   ItemPaleta('Areia', 'Tile', Arte.areia, Color(0xFFF2D58A)),
-  ItemPaleta('Árvore', 'Deco', Arte.icone, Color(0xFF2E9E4F), Icons.park),
-  ItemPaleta('Flor', 'Deco', Arte.icone, Color(0xFFEC4899), Icons.local_florist),
-  ItemPaleta('Nuvem', 'Deco', Arte.icone, Color(0xFF94A3B8), Icons.cloud),
-  ItemPaleta('Herói', 'Ator', Arte.icone, Color(0xFFF59E0B), Icons.face),
-  ItemPaleta('Slime', 'Ator', Arte.icone, Color(0xFF22D3EE), Icons.bug_report),
-  ItemPaleta('Fantasma', 'Ator', Arte.icone, Color(0xFFA78BFA), Icons.sentiment_very_dissatisfied),
-  ItemPaleta('Baú', 'Objeto', Arte.icone, Color(0xFFB45309), Icons.inventory_2),
-  ItemPaleta('Moeda', 'Objeto', Arte.icone, Color(0xFFFBBF24), Icons.monetization_on),
-  ItemPaleta('Bandeira', 'Objeto', Arte.icone, Color(0xFFEF4444), Icons.flag),
+  ItemPaleta('Árvore', 'Deco', Arte.icone, Color(0xFF2E9E4F), Ic.arvore),
+  ItemPaleta('Flor', 'Deco', Arte.icone, Color(0xFFEC4899), Ic.flor),
+  ItemPaleta('Nuvem', 'Deco', Arte.icone, Color(0xFF94A3B8), Ic.nuvem),
+  ItemPaleta('Herói', 'Ator', Arte.icone, Color(0xFFF59E0B), Ic.rosto),
+  ItemPaleta('Slime', 'Ator', Arte.icone, Color(0xFF22D3EE), Ic.inseto),
+  ItemPaleta('Fantasma', 'Ator', Arte.icone, Color(0xFFA78BFA), Ic.fantasma),
+  ItemPaleta('Baú', 'Objeto', Arte.icone, Color(0xFFB45309), Ic.pacote),
+  ItemPaleta('Moeda', 'Objeto', Arte.icone, Color(0xFFFBBF24), Ic.moeda),
+  ItemPaleta('Bandeira', 'Objeto', Arte.icone, Color(0xFFEF4444), Ic.bandeira),
 ];
 
 const _abas = ['Tile', 'Deco', 'Ator', 'Objeto'];
@@ -134,9 +135,14 @@ class _CenaTelaState extends State<CenaTela> {
   bool _mover = false;
   int _aba = 0;
   int _sel = 0;
-  double _altPainel = 220; // altura do painel (puxavel)
-  static const _alturas = [44.0, 220.0, 430.0];
+  double _altPainel = 150; // altura do painel (puxavel)
+  static const _alturas = [52.0, 150.0, 380.0];
   int? _ultimo;
+
+  // desfazer / refazer: cada traco guarda o valor anterior das celulas tocadas
+  final _desfazer = <Map<String, int?>>[];
+  final _refazer = <Map<String, int?>>[];
+  Map<String, int?> _traco = {};
 
   // camera (zoom + deslocamento), controlada a mao: 1 dedo pinta, 2 dedos movem/zoom
   double _esc = 1;
@@ -158,8 +164,8 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _ajustar(Size s) {
     final mw = c.largura * _cs, mh = c.altura * _cs;
-    _esc = math.min((s.width - 70) / mw, (s.height - 90) / mh).clamp(0.3, 1.6);
-    _desl = Offset((s.width - mw * _esc) / 2 + 8, (s.height - mh * _esc) / 2 - 8);
+    _esc = math.min((s.width - 70) / mw, (s.height - 130) / mh).clamp(0.3, 1.6);
+    _desl = Offset((s.width - mw * _esc) / 2 + 14, (s.height - mh * _esc) / 2 + 10);
     _ajustou = true;
   }
 
@@ -171,12 +177,56 @@ class _CenaTelaState extends State<CenaTela> {
     final chave = x * 100000 + y;
     if (chave == _ultimo) return;
     _ultimo = chave;
-    if (_apagar) {
-      c.celulas.remove('$x,$y');
+    final k = '$x,$y';
+    final antes = c.celulas[k];
+    final depois = _apagar ? null : _sel;
+    if (antes == depois) return;
+    _traco.putIfAbsent(k, () => antes);
+    if (depois == null) {
+      c.celulas.remove(k);
     } else {
-      c.celulas['$x,$y'] = _sel;
+      c.celulas[k] = depois;
     }
     _versao.value++;
+  }
+
+  /// Aplica um conjunto de valores e devolve o inverso.
+  Map<String, int?> _aplicar(Map<String, int?> m) {
+    final inv = <String, int?>{};
+    m.forEach((k, v) {
+      inv[k] = c.celulas[k];
+      if (v == null) {
+        c.celulas.remove(k);
+      } else {
+        c.celulas[k] = v;
+      }
+    });
+    _versao.value++;
+    return inv;
+  }
+
+  void _undo() {
+    if (_desfazer.isEmpty) return;
+    _refazer.add(_aplicar(_desfazer.removeLast()));
+    setState(() {});
+    RepositorioProjetos.instancia.salvar();
+  }
+
+  void _redo() {
+    if (_refazer.isEmpty) return;
+    _desfazer.add(_aplicar(_refazer.removeLast()));
+    setState(() {});
+    RepositorioProjetos.instancia.salvar();
+  }
+
+  void _terminou(ScaleEndDetails _) {
+    if (_traco.isEmpty) return;
+    _desfazer.add(_traco);
+    if (_desfazer.length > 100) _desfazer.removeAt(0);
+    _refazer.clear();
+    _traco = {};
+    setState(() {});
+    RepositorioProjetos.instancia.salvar(); // salva sozinho a cada traco
   }
 
   void _comecou(ScaleStartDetails d) {
@@ -209,9 +259,44 @@ class _CenaTelaState extends State<CenaTela> {
     }
   }
 
+  Widget _ferramenta(IconData i, bool ativo, VoidCallback f) => Toque(
+        aoTocar: f,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: ativo ? azulEditor : Cores.cartao.withAlpha(235), borderRadius: BorderRadius.circular(14)),
+          child: Icon(i, size: 22, color: ativo ? Colors.white : Cores.texto2),
+        ),
+      );
+
+  Widget _barra(IconData i, VoidCallback? f) => Toque(
+        aoTocar: f ?? () {},
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(color: Cores.cartao.withAlpha(235), borderRadius: BorderRadius.circular(21)),
+          child: Icon(i, size: 21, color: f == null ? Cores.texto2.withAlpha(90) : null),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final itens = [for (var i = 0; i < paleta.length; i++) if (paleta[i].aba == _abas[_aba]) i];
+    final grande = _altPainel > 300;
+    Widget celula(int i) => Toque(
+          aoTocar: () => setState(() {
+            _sel = i;
+            _apagar = false;
+            _mover = false;
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: _sel == i && !_apagar && !_mover ? azulEditor : Colors.transparent, width: 2.5)),
+            child: CustomPaint(painter: _Miniatura(paleta[i])),
+          ),
+        );
     return Scaffold(
       backgroundColor: Cores.fundo,
       body: Column(children: [
@@ -224,40 +309,73 @@ class _CenaTelaState extends State<CenaTela> {
                   child: GestureDetector(
                     onScaleStart: _comecou,
                     onScaleUpdate: _moveu,
+                    onScaleEnd: _terminou,
                     child: CustomPaint(painter: _CenaPainter(this, _versao)),
                   ),
                 ),
                 SafeArea(
                   child: Stack(children: [
-                    Positioned(left: 12, top: 8, child: BotaoGrosso(icone: Icons.arrow_back, cor: mentaEditor, aoTocar: () => Navigator.pop(context))),
+                    // barra superior enxuta: voltar | nome da cena (toque = configurar) | desfazer, refazer, rodar
                     Positioned(
+                      left: 10,
                       right: 10,
-                      top: 62,
-                      child: Column(children: [
-                        BotaoGrosso(icone: Icons.settings, rotulo: 'Config', cor: mentaEditor, largura: 56, aoTocar: () async {
-                          await abrirConfigCena(context, c);
-                          _ajustou = false;
-                          if (mounted) setState(() {});
-                        }),
-                        const SizedBox(height: 8),
-                        BotaoGrosso(icone: Icons.pin, rotulo: 'Dados', cor: mentaEditor, largura: 56, aoTocar: () => emBreve(context, 'Dados do jogo')),
-                        const SizedBox(height: 8),
-                        BotaoGrosso(icone: Icons.save, rotulo: 'Salvar', cor: mentaEditor, largura: 56, aoTocar: () {
-                          RepositorioProjetos.instancia.salvar();
-                          aviso(context, 'Salvo.');
-                        }),
-                        const SizedBox(height: 8),
-                        BotaoGrosso(icone: Icons.play_arrow, rotulo: 'Rodar', cor: mentaEditor, largura: 56, aoTocar: () => emBreve(context, 'Executar (engine)')),
+                      top: 6,
+                      child: Row(children: [
+                        _barra(Ic.voltar, () => Navigator.pop(context)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Toque(
+                            aoTocar: () async {
+                              await abrirConfigCena(context, c);
+                              _ajustou = false;
+                              if (mounted) setState(() {});
+                            },
+                            child: Container(
+                              height: 42,
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(color: Cores.cartao.withAlpha(235), borderRadius: BorderRadius.circular(21)),
+                              child: Row(children: [
+                                Expanded(child: Text('${c.nome}  ·  ${c.largura}×${c.altura}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+                                Icon(Ic.engrenagem, size: 17, color: Cores.texto2),
+                              ]),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _barra(Ic.desfazer, _desfazer.isEmpty ? null : _undo),
+                        const SizedBox(width: 6),
+                        _barra(Ic.refazer, _refazer.isEmpty ? null : _redo),
+                        const SizedBox(width: 6),
+                        Toque(
+                          aoTocar: () => emBreve(context, 'Executar (engine)'),
+                          child: Container(width: 42, height: 42, decoration: const BoxDecoration(color: azulEditor, shape: BoxShape.circle), child: const Icon(Ic.play, size: 20, color: Colors.white)),
+                        ),
                       ]),
                     ),
-                    Positioned(left: 12, bottom: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: Cores.cartao.withAlpha(235), borderRadius: BorderRadius.circular(12)), child: Text('${c.nome} · ${c.largura}×${c.altura}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)))),
+                    // ferramentas
                     Positioned(
-                      right: 12,
-                      bottom: 10,
-                      child: Row(children: [
-                        BotaoGrosso(icone: Icons.open_with, cor: mentaEditor, ativo: _mover, aoTocar: () => setState(() => _mover = !_mover)),
-                        const SizedBox(width: 8),
-                        BotaoGrosso(icone: Icons.auto_fix_normal, cor: mentaEditor, ativo: _apagar, aoTocar: () => setState(() => _apagar = !_apagar)),
+                      left: 10,
+                      top: 64,
+                      child: Column(children: [
+                        _ferramenta(Ic.pincel, !_apagar && !_mover, () => setState(() {
+                              _apagar = false;
+                              _mover = false;
+                            })),
+                        const SizedBox(height: 8),
+                        _ferramenta(Ic.borracha, _apagar, () => setState(() {
+                              _apagar = true;
+                              _mover = false;
+                            })),
+                        const SizedBox(height: 8),
+                        _ferramenta(Ic.mao, _mover, () => setState(() {
+                              _mover = !_mover;
+                              _apagar = false;
+                            })),
+                        const SizedBox(height: 8),
+                        _ferramenta(Ic.centralizar, false, () {
+                          _ajustou = false;
+                          setState(() {});
+                        }),
                       ]),
                     ),
                   ]),
@@ -269,58 +387,67 @@ class _CenaTelaState extends State<CenaTela> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 90),
           height: _altPainel,
-          decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+          decoration: BoxDecoration(color: Cores.cartao, borderRadius: const BorderRadius.vertical(top: Radius.circular(22))),
           child: ClipRect(
             child: Column(children: [
-              // puxe a alca para cima/baixo; ao soltar, encaixa em fechado / medio / alto
+              // puxe a alca; ao soltar encaixa em recolhido / faixa / grade
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onVerticalDragUpdate: (d) => setState(() => _altPainel = (_altPainel - d.delta.dy).clamp(_alturas.first, _alturas.last)),
                 onVerticalDragEnd: (_) => setState(() => _altPainel = _alturas.reduce((x, y) => (x - _altPainel).abs() < (y - _altPainel).abs() ? x : y)),
                 onTap: () => setState(() => _altPainel = _altPainel > 100 ? _alturas.first : _alturas[1]),
-                child: SizedBox(height: 44, child: Center(child: Container(width: 46, height: 5, decoration: BoxDecoration(color: Cores.texto2, borderRadius: BorderRadius.circular(3))))),
-              ),
-              SizedBox(
-                height: 36,
-                child: Row(children: [
-                  for (var i = 0; i < _abas.length; i++)
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => setState(() => _aba = i),
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text(_abas[i], style: TextStyle(fontSize: 15, color: _aba == i ? (temaEscuro.value ? Colors.white : Colors.black87) : Cores.texto2, fontWeight: _aba == i ? FontWeight.w800 : FontWeight.w500)),
-                          const SizedBox(height: 4),
-                          AnimatedContainer(duration: const Duration(milliseconds: 200), height: 3, width: _aba == i ? 28 : 0, decoration: BoxDecoration(color: azulEditor, borderRadius: BorderRadius.circular(2))),
-                        ]),
-                      ),
-                    ),
-                ]),
-              ),
-              Expanded(
-                child: GridView.count(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  crossAxisCount: 6,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  children: [
-                    for (final i in itens)
-                      Toque(
-                        aoTocar: () => setState(() {
-                          _sel = i;
-                          _apagar = false;
-                          _mover = false;
-                        }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(11), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
-                          child: CustomPaint(painter: _Miniatura(paleta[i])),
-                        ),
-                      ),
-                  ],
+                child: SizedBox(
+                  height: 52,
+                  child: Row(children: [
+                    const SizedBox(width: 14),
+                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(paleta[_sel]))),
+                    const SizedBox(width: 10),
+                    Text(paleta[_sel].nome, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    Container(width: 36, height: 4, decoration: BoxDecoration(color: Cores.texto2.withAlpha(120), borderRadius: BorderRadius.circular(3))),
+                    const SizedBox(width: 50),
+                    const Spacer(),
+                    Icon(_altPainel > 100 ? Ic.baixo : Ic.cima, size: 20, color: Cores.texto2),
+                    const SizedBox(width: 16),
+                  ]),
                 ),
               ),
+              if (_altPainel > 100) ...[
+                SizedBox(
+                  height: 34,
+                  child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: [
+                    for (var i = 0; i < _abas.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Toque(
+                          aoTocar: () => setState(() => _aba = i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(color: _aba == i ? azulEditor : Cores.cartao2, borderRadius: BorderRadius.circular(17)),
+                            child: Text(_abas[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _aba == i ? Colors.white : Cores.texto2)),
+                          ),
+                        ),
+                      ),
+                  ]),
+                ),
+                Expanded(
+                  child: grande
+                      ? GridView.count(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                          crossAxisCount: 6,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                          children: [for (final i in itens) celula(i)],
+                        )
+                      : ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                          children: [for (final i in itens) Padding(padding: const EdgeInsets.only(right: 8), child: AspectRatio(aspectRatio: 1, child: celula(i)))],
+                        ),
+                ),
+              ],
             ]),
           ),
         ),

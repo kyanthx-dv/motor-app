@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'icones.dart';
 import 'package:flutter/services.dart';
 
 import 'perfil_publico.dart';
@@ -47,13 +49,13 @@ class _JogoPaginaState extends State<JogoPagina> {
               decoration: BoxDecoration(gradient: LinearGradient(colors: [j.cor1.withAlpha(180), Cores.fundo], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
               child: SafeArea(
                 child: Column(children: [
-                  Row(children: [IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Icons.more_horiz), onPressed: () => emBreve(context, 'Opções'))]),
+                  Row(children: [IconButton(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Ic.maisHoriz), onPressed: () => emBreve(context, 'Opções'))]),
                   SizedBox(width: 130, height: 130, child: Capa(cor1: j.cor1, cor2: j.cor2, icone: j.icone, tamanhoIcone: 56, raio: 20)),
                   const SizedBox(height: 10),
                   Text(j.titulo, style: const TextStyle(fontSize: 22)),
                   Text('${abreviar(j.visitas)} visitas · ${rotuloOrientacao(j.orientacao)}', style: const TextStyle(color: Cores.texto2)),
                   const SizedBox(height: 14),
-                  BotaoPrimario(texto: 'Jogar', icone: Icons.play_arrow_rounded, cor: const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF16A34A)]), aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
+                  BotaoPrimario(texto: 'Jogar', icone: Ic.play, cor: const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF16A34A)]), aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
                 ]),
               ),
             ),
@@ -65,9 +67,9 @@ class _JogoPaginaState extends State<JogoPagina> {
                 Text(j.descricao),
                 const SizedBox(height: 14),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _acao(_curtiu ? Icons.favorite : Icons.favorite_border, abreviar(j.curtidas + (_curtiu ? 1 : 0)), () => setState(() => _curtiu = !_curtiu), cor: _curtiu ? Colors.redAccent : null),
-                  _acao(_fav ? Icons.star : Icons.star_border, abreviar(j.favoritos + (_fav ? 1 : 0)), () => setState(() => _fav = !_fav), cor: _fav ? const Color(0xFFFBBF24) : null),
-                  _acao(Icons.volunteer_activism_outlined, 'Doar', () => emBreve(context, 'Doações')),
+                  _acao(_curtiu ? Ic.coracaoCheio : Ic.coracao, abreviar(j.curtidas + (_curtiu ? 1 : 0)), () => setState(() => _curtiu = !_curtiu), cor: _curtiu ? Colors.redAccent : null),
+                  _acao(_fav ? Ic.estrelaCheia : Ic.estrela, abreviar(j.favoritos + (_fav ? 1 : 0)), () => setState(() => _fav = !_fav), cor: _fav ? const Color(0xFFFBBF24) : null),
+                  _acao(Ic.presente, 'Doar', () => emBreve(context, 'Doações')),
                 ]),
                 const Divider(),
                 Text('${_coments.length} comentários', style: const TextStyle(fontSize: 18)),
@@ -177,7 +179,7 @@ class _JogoPlayerState extends State<JogoPlayer> {
         body: _pronto
             ? Stack(children: [
                 Positioned.fill(child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [j.cor1, j.cor2], begin: Alignment.topLeft, end: Alignment.bottomRight)), child: Center(child: Icon(j.icone, size: 96, color: Colors.white54)))),
-                Positioned(left: 8, top: 8, child: SafeArea(child: IconButton.filledTonal(tooltip: 'Menu', icon: const Icon(Icons.menu), onPressed: _menu))),
+                Positioned(left: 8, top: 8, child: SafeArea(child: IconButton.filledTonal(tooltip: 'Menu', icon: const Icon(Ic.menu), onPressed: _menu))),
                 const Positioned(bottom: 12, left: 0, right: 0, child: Center(child: Text('Demonstração: aqui roda o jogo (engine)', style: TextStyle(color: Colors.white70)))),
               ])
             : Container(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'icones.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'dados.dart';
@@ -144,7 +146,7 @@ class Capa extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: Colors.black.withAlpha(150), borderRadius: BorderRadius.circular(10)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.play_arrow, size: 16, color: Colors.white), Text('vídeo', style: TextStyle(fontSize: 12, color: Colors.white))]),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Ic.play, size: 16, color: Colors.white), Text('vídeo', style: TextStyle(fontSize: 12, color: Colors.white))]),
               ),
             ),
         ]),
@@ -183,7 +185,7 @@ class CartaoJogo extends StatelessWidget {
             Text(jogo.titulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
             Row(children: [
               Expanded(child: Text('@${jogo.autor}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2, fontSize: 12))),
-              Estatistica(Icons.thumb_up_alt_outlined, abreviar(jogo.curtidas)),
+              Estatistica(Ic.curtir, abreviar(jogo.curtidas)),
             ]),
           ]),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'icones.dart';
 import 'dados.dart';
 import 'perfil_publico.dart';
 import 'widgets.dart';
@@ -95,9 +96,9 @@ class _AcoesState extends State<_Acoes> {
 
   @override
   Widget build(BuildContext context) => Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-        _b(IconeAnim(ligado: _c, ligadoIcone: Icons.favorite, desligadoIcone: Icons.favorite_border, cor: Colors.redAccent, tamanho: 32), abreviar(widget.curtidas + (_c ? 1 : 0)), () => setState(() => _c = !_c)),
-        _b(IconeAnim(ligado: _f, ligadoIcone: Icons.star, desligadoIcone: Icons.star_border, cor: _ouro, tamanho: 32), abreviar(widget.favoritos + (_f ? 1 : 0)), () => setState(() => _f = !_f)),
-        if (widget.doar) _b(const Icon(Icons.volunteer_activism_outlined, size: 32), 'Doar', () => emBreve(context, 'Doações')),
+        _b(IconeAnim(ligado: _c, ligadoIcone: Ic.coracaoCheio, desligadoIcone: Ic.coracao, cor: Colors.redAccent, tamanho: 32), abreviar(widget.curtidas + (_c ? 1 : 0)), () => setState(() => _c = !_c)),
+        _b(IconeAnim(ligado: _f, ligadoIcone: Ic.estrelaCheia, desligadoIcone: Ic.estrela, cor: _ouro, tamanho: 32), abreviar(widget.favoritos + (_f ? 1 : 0)), () => setState(() => _f = !_f)),
+        if (widget.doar) _b(const Icon(Ic.presente, size: 32), 'Doar', () => emBreve(context, 'Doações')),
       ]);
 }
 
@@ -115,7 +116,7 @@ class PostPagina extends StatelessWidget {
   Widget build(BuildContext context) => _Base(
         comentarios: post.comentarios,
         topo: [
-          SafeArea(bottom: false, child: Row(children: [IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Icons.more_horiz), onPressed: () => emBreve(context, 'Opções'))])),
+          SafeArea(bottom: false, child: Row(children: [IconButton(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Ic.maisHoriz), onPressed: () => emBreve(context, 'Opções'))])),
           _autor(post.autor, '11 nov'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -150,14 +151,14 @@ class ItemPagina extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Column(children: [
-              Row(children: [IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Icons.more_horiz), onPressed: () => emBreve(context, 'Opções'))]),
+              Row(children: [IconButton(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Ic.maisHoriz), onPressed: () => emBreve(context, 'Opções'))]),
               SizedBox(width: 140, height: 140, child: Capa(cor1: i.cor1, cor2: i.cor2, icone: i.icone, tamanhoIcone: 60, raio: i.pfp ? 70 : 20)),
               const SizedBox(height: 10),
               Text(i.titulo, style: const TextStyle(fontSize: 22)),
               Text(i.pfp ? 'PFP' : 'Asset', style: const TextStyle(color: Cores.texto2)),
               const SizedBox(height: 8),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.monetization_on, color: _ouro),
+                const Icon(Ic.moeda, color: _ouro),
                 const SizedBox(width: 6),
                 Text(i.preco == 0 ? 'Grátis' : '${i.preco}', style: TextStyle(fontSize: 26, color: i.preco == 0 ? Cores.verde : const Color(0xFFFF7A33))),
               ]),

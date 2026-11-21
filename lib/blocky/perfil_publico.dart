@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'icones.dart';
 import 'package:flutter/services.dart';
 
 import 'abas.dart';
@@ -23,10 +25,10 @@ List<Color> _coresDe(String u) {
 Pessoa pessoaDe(String usuario) => pessoasExemplo.firstWhere((p) => p.usuario == usuario, orElse: () => Pessoa(usuario, usuario, 0));
 
 IconData iconeSelo(Selo s) => switch (s) {
-      Selo.dono => Icons.shield_rounded,
-      Selo.verificado => Icons.verified_rounded,
-      Selo.premium => Icons.workspace_premium_rounded,
-      Selo.bot => Icons.smart_toy_rounded,
+      Selo.dono => Ic.coroa,
+      Selo.verificado => Ic.selo,
+      Selo.premium => Ic.diamante,
+      Selo.bot => Ic.robo,
     };
 
 Color corSelo(Selo s) => switch (s) {
@@ -139,7 +141,7 @@ class PerfilPublicoTela extends StatelessWidget {
     final itens = itensLojaExemplo.where((i) => i.autor == usuario).toList();
     return Scaffold(
       body: ListView(padding: EdgeInsets.zero, children: [
-        CabecalhoPerfil(usuario: usuario, esquerda: IconButton.filledTonal(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), acao: const BotaoSeguir()),
+        CabecalhoPerfil(usuario: usuario, esquerda: IconButton.filledTonal(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), acao: const BotaoSeguir()),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
           child: Row(children: [_num('${abreviar(p.seguidores)}', 'seguidores'), const SizedBox(width: 28), _num('${jogos.length}', 'jogos'), const SizedBox(width: 28), _num('${posts.length}', 'posts')]),
@@ -207,7 +209,7 @@ class CabecalhoPerfil extends StatelessWidget {
             bottom: 10,
             child: Toque(
               aoTocar: () => emBreve(context, 'Alterar banner'),
-              child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.black.withAlpha(110), borderRadius: BorderRadius.circular(14)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.photo_camera_outlined, size: 15, color: Colors.white), SizedBox(width: 5), Text('Banner', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700))])),
+              child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.black.withAlpha(110), borderRadius: BorderRadius.circular(14)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Ic.camera, size: 15, color: Colors.white), SizedBox(width: 5), Text('Banner', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700))])),
             ),
           ),
         Positioned(left: 16, bottom: -44, child: AvatarUsuario(usuario, raio: 40, anel: true)),
