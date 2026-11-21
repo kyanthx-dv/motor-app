@@ -343,39 +343,6 @@ class IconeAnim extends StatelessWidget {
       );
 }
 
-/// Botao do editor: superficie escura, sem contorno; ativo = cor de destaque. (Nome antigo mantido.)
-class BotaoGrosso extends StatelessWidget {
-  const BotaoGrosso({super.key, required this.icone, this.rotulo, required this.cor, required this.aoTocar, this.largura, this.ativo = false});
-  final IconData icone;
-  final String? rotulo;
-  final Color cor; // ignorado: o editor segue o tema do app
-  final VoidCallback aoTocar;
-  final double? largura;
-  final bool ativo;
-
-  @override
-  Widget build(BuildContext context) => Toque(
-        aoTocar: aoTocar,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: largura,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-          decoration: BoxDecoration(
-            color: ativo ? Cores.acento : Cores.cartao.withAlpha(235),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
-          child: rotulo == null
-              ? Icon(icone, color: ativo ? Colors.white : (temaEscuro.value ? Colors.white : Colors.black87), size: 22)
-              : Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(icone, color: temaEscuro.value ? Colors.white : Colors.black87, size: 20),
-                  const SizedBox(height: 1),
-                  Text(rotulo!, style: TextStyle(color: Cores.texto2, fontSize: 10, fontWeight: FontWeight.w700)),
-                ]),
-        ),
-      );
-}
-
 const Color mentaEditor = Color(0xFF7C5CFF); // = acento (nome historico)
 const Color azulEditor = Color(0xFF7C5CFF);
 const Color rosaEditor = Color(0xFFFF7B93);
