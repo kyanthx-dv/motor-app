@@ -379,3 +379,18 @@ class BotaoGrosso extends StatelessWidget {
 const Color mentaEditor = Color(0xFF7C5CFF); // = acento (nome historico)
 const Color azulEditor = Color(0xFF7C5CFF);
 const Color rosaEditor = Color(0xFFFF7B93);
+
+/// Cabecalho de abas fixo (perfis).
+class TabsFixas extends SliverPersistentHeaderDelegate {
+  TabsFixas(this.tabs);
+  final BarraAbas tabs;
+
+  @override
+  double get minExtent => tabs.preferredSize.height;
+  @override
+  double get maxExtent => tabs.preferredSize.height;
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(color: Cores.fundo, child: tabs);
+  @override
+  bool shouldRebuild(covariant TabsFixas old) => true;
+}

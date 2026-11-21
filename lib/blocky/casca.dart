@@ -39,8 +39,6 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
         return _Acao(chave: 'loja', icone: Ic.subir, texto: 'Publicar', aoTocar: () => menuPublicar(context));
       case 2:
         return _Acao(chave: 'post', icone: Ic.lapis, texto: 'Postar', aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoPostTela())));
-      case 3:
-        return _Acao(chave: 'jogo', icone: Ic.mais, texto: 'Novo jogo', aoTocar: () => novoJogo(context));
     }
     return null;
   }

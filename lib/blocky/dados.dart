@@ -102,9 +102,11 @@ class ItemLoja {
 enum Selo { dono, verificado, premium, bot }
 
 class Pessoa {
-  const Pessoa(this.usuario, this.nome, this.seguidores, {this.id = 0, this.selos = const [], this.bio = ''});
+  // seguindo: quantas pessoas ela segue
+  const Pessoa(this.usuario, this.nome, this.seguidores, {this.id = 0, this.selos = const [], this.bio = '', this.seguindo = 0});
   final String usuario;
   final String nome;
+  final int seguindo;
   final int seguidores;
   final int id; // ID numerico fixo da conta (nao muda como o @usuario)
   final List<Selo> selos;

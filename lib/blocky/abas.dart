@@ -324,27 +324,26 @@ class PerfilAba extends StatelessWidget {
         headerSliverBuilder: (_, __) => [
           SliverToBoxAdapter(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CabecalhoPerfil(usuario: 'kyanthx', proprio: true, direita: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Ic.engrenagem), onPressed: () => _menuPerfil(context))),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Row(children: [_Numero('48', 'Seguindo'), SizedBox(width: 28), _Numero('1,2k', 'Seguidores'), SizedBox(width: 28), _Numero('24', 'Favoritos')]),
-                  const SizedBox(height: 14),
-                  Row(children: [
-                    Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Editar perfil'), child: const Text('Editar perfil'))),
-                    const SizedBox(width: 10),
-                    Expanded(child: FilledButton(onPressed: () => _ir(context, const EditorWebTela()), child: const Text('Abrir editor'))),
-                  ]),
+              CabecalhoPerfil(
+                usuario: 'kyanthx',
+                proprio: true,
+                direita: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Ic.engrenagem), onPressed: () => _menuPerfil(context)),
+                stats: const [('3', 'Jogos'), ('1,2k', 'Seguidores'), ('48', 'Seguindo')],
+                botoes: Row(children: [
+                  Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Editar perfil'), child: const Text('Editar perfil'))),
+                  const SizedBox(width: 10),
+                  Expanded(child: FilledButton(onPressed: () => _ir(context, const EditorWebTela()), child: const Text('Abrir editor'))),
                 ]),
               ),
             ]),
           ),
-          SliverPersistentHeader(pinned: true, delegate: _TabsFixas(const BarraAbas(['Jogos', 'Assets', 'Posts']))),
+          SliverPersistentHeader(pinned: true, delegate: TabsFixas(const BarraAbas(['Jogos', 'Assets', 'Posts']))),
         ],
         body: TabBarView(children: [
           ListenableBuilder(
             listenable: RepositorioProjetos.instancia,
             builder: (_, __) => ListView(padding: const EdgeInsets.all(12), children: [
+              Padding(padding: const EdgeInsets.only(bottom: 12), child: FilledButton.icon(onPressed: () => novoJogo(context), icon: const Icon(Ic.mais), label: const Text('Novo jogo'))),
               for (final pr in RepositorioProjetos.instancia.projetos) _LinhaProjeto(pr),
               for (final j in meus) _LinhaJogo(j),
               if (RepositorioProjetos.instancia.projetos.isEmpty && meus.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Toque em Novo jogo para criar o primeiro.', style: TextStyle(color: Cores.texto2)))),
@@ -358,19 +357,6 @@ class PerfilAba extends StatelessWidget {
   }
 }
 
-class _TabsFixas extends SliverPersistentHeaderDelegate {
-  _TabsFixas(this.tabs);
-  final BarraAbas tabs;
-
-  @override
-  double get minExtent => tabs.preferredSize.height;
-  @override
-  double get maxExtent => tabs.preferredSize.height;
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(color: Cores.fundo, child: tabs);
-  @override
-  bool shouldRebuild(covariant _TabsFixas old) => true;
-}
 
 class _LinhaProjeto extends StatelessWidget {
   const _LinhaProjeto(this.p);
