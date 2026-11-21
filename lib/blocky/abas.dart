@@ -357,27 +357,21 @@ class PerfilAba extends StatelessWidget {
       child: NestedScrollView(
         headerSliverBuilder: (_, __) => [
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Align(alignment: Alignment.centerRight, child: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: () => _menuPerfil(context))),
-                Row(children: [
-                  const AvatarUsuario('kyanthx', raio: 44, anel: true),
-                  const Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_Numero('48', 'Seguindo'), _Numero('1,2k', 'Seguidores'), _Numero('24', 'Favoritos')])),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              CabecalhoPerfil(usuario: 'kyanthx', proprio: true, direita: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Icons.settings_outlined), onPressed: () => _menuPerfil(context))),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Row(children: [_Numero('48', 'Seguindo'), SizedBox(width: 28), _Numero('1,2k', 'Seguidores'), SizedBox(width: 28), _Numero('24', 'Favoritos')]),
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Editar perfil'), child: const Text('Editar perfil'))),
+                    const SizedBox(width: 10),
+                    Expanded(child: FilledButton(onPressed: () => _ir(context, const EditorWebTela()), child: const Text('Abrir editor'))),
+                  ]),
                 ]),
-                const SizedBox(height: 12),
-                const Text('Kyan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                const Text('@kyanthx', style: TextStyle(color: Cores.texto2)),
-                const SizedBox(height: 6),
-                const Text('Criando jogos 2D com o Motor.'),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Editar perfil'), child: const Text('Editar perfil'))),
-                  const SizedBox(width: 10),
-                  Expanded(child: FilledButton(onPressed: () => _ir(context, const EditorWebTela()), child: const Text('Abrir editor'))),
-                ]),
-              ]),
-            ),
+              ),
+            ]),
           ),
           SliverPersistentHeader(pinned: true, delegate: _TabsFixas(const BarraAbas(['Jogos', 'Assets', 'Posts']))),
         ],
@@ -521,7 +515,7 @@ void _menuPerfil(BuildContext context) => showModalBottomSheet<void>(
               ),
             ),
             const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: FilledButton(style: FilledButton.styleFrom(backgroundColor: Cores.cartao, foregroundColor: Colors.white70, minimumSize: const Size.fromHeight(52)), onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar'))),
+            SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar'))),
           ]),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'abas.dart';
 import 'dados.dart';
@@ -20,6 +21,53 @@ List<Color> _coresDe(String u) {
 }
 
 Pessoa pessoaDe(String usuario) => pessoasExemplo.firstWhere((p) => p.usuario == usuario, orElse: () => Pessoa(usuario, usuario, 0));
+
+IconData iconeSelo(Selo s) => switch (s) {
+      Selo.dono => Icons.shield_rounded,
+      Selo.verificado => Icons.verified_rounded,
+      Selo.premium => Icons.workspace_premium_rounded,
+      Selo.bot => Icons.smart_toy_rounded,
+    };
+
+Color corSelo(Selo s) => switch (s) {
+      Selo.dono => const Color(0xFFE5A93B),
+      Selo.verificado => const Color(0xFF3B9EF5),
+      Selo.premium => const Color(0xFFD16BA5),
+      Selo.bot => const Color(0xFF3FB6A8),
+    };
+
+String nomeSelo(Selo s) => switch (s) {
+      Selo.dono => 'Dono',
+      Selo.verificado => 'Verificado',
+      Selo.premium => 'Premium',
+      Selo.bot => 'Bot',
+    };
+
+String descSelo(Selo s) => switch (s) {
+      Selo.dono => 'Fundador ou dono da plataforma.',
+      Selo.verificado => 'Conta confirmada pela equipe do Blocky.',
+      Selo.premium => 'Apoia o Blocky com a assinatura Premium.',
+      Selo.bot => 'Conta automática (não é uma pessoa).',
+    };
+
+/// Selos ao lado do nome. Toque em um para ver o que significa.
+class Selos extends StatelessWidget {
+  const Selos(this.selos, {super.key, this.tamanho = 18});
+  final List<Selo> selos;
+  final double tamanho;
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        for (final s in selos)
+          GestureDetector(
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              builder: (_) => SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(iconeSelo(s), color: corSelo(s), size: 44), const SizedBox(height: 8), Text(nomeSelo(s), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(descSelo(s), textAlign: TextAlign.center, style: const TextStyle(color: Cores.texto2))]))),
+            ),
+            child: Padding(padding: const EdgeInsets.only(left: 4), child: Icon(iconeSelo(s), color: corSelo(s), size: tamanho)),
+          ),
+      ]);
+}
 
 void abrirPerfil(BuildContext context, String usuario) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PerfilPublicoTela(usuario: usuario)));
 
@@ -66,7 +114,10 @@ class ChipAutor extends StatelessWidget {
         const SizedBox(width: 10),
         Flexible(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Flexible(child: Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
+              for (final x in p.selos) Padding(padding: const EdgeInsets.only(left: 3), child: Icon(iconeSelo(x), color: corSelo(x), size: 14)),
+            ]),
             Text(legenda == null ? '@${p.usuario}' : '@${p.usuario} · $legenda', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2, fontSize: 12)),
           ]),
         ),
@@ -83,28 +134,12 @@ class PerfilPublicoTela extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = pessoaDe(usuario);
-    final c = _coresDe(usuario);
     final jogos = jogosExemplo.where((j) => j.autor == usuario).toList();
     final posts = postsExemplo.where((x) => x.autor == usuario).toList();
     final itens = itensLojaExemplo.where((i) => i.autor == usuario).toList();
     return Scaffold(
       body: ListView(padding: EdgeInsets.zero, children: [
-        Stack(clipBehavior: Clip.none, children: [
-          Container(
-            height: 150,
-            decoration: BoxDecoration(gradient: LinearGradient(colors: [c[0].withAlpha(200), c[1].withAlpha(120)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
-            child: SafeArea(child: Align(alignment: Alignment.topLeft, child: Padding(padding: const EdgeInsets.all(8), child: IconButton.filledTonal(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))))),
-          ),
-          Positioned(left: 16, bottom: -44, child: AvatarUsuario(usuario, raio: 40, anel: true)),
-        ]),
-        const SizedBox(height: 54),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.nome, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), Text('@${p.usuario}', style: const TextStyle(color: Cores.texto2))])),
-            const BotaoSeguir(),
-          ]),
-        ),
+        CabecalhoPerfil(usuario: usuario, esquerda: IconButton.filledTonal(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), acao: const BotaoSeguir()),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
           child: Row(children: [_num('${abreviar(p.seguidores)}', 'seguidores'), const SizedBox(width: 28), _num('${jogos.length}', 'jogos'), const SizedBox(width: 28), _num('${posts.length}', 'posts')]),
@@ -139,4 +174,69 @@ class PerfilPublicoTela extends StatelessWidget {
   Widget _titulo(String t) => Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 10), child: Text(t, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)));
 
   Widget _num(String v, String r) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(v, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), Text(r, style: const TextStyle(color: Cores.texto2, fontSize: 12))]);
+}
+
+/// Topo de perfil (proprio e publico): banner, foto, nome + selos, @usuario e ID.
+/// O banner e um espaco pronto: hoje degrade; depois mostra a imagem enviada.
+class CabecalhoPerfil extends StatelessWidget {
+  const CabecalhoPerfil({super.key, required this.usuario, this.esquerda, this.direita, this.proprio = false, this.acao});
+  final String usuario;
+  final Widget? esquerda; // ex.: voltar
+  final Widget? direita; // ex.: configuracoes
+  final bool proprio;
+  final Widget? acao; // ex.: Seguir
+
+  @override
+  Widget build(BuildContext context) {
+    final p = pessoaDe(usuario);
+    final c = _coresDe(usuario);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Stack(clipBehavior: Clip.none, children: [
+        Container(
+          height: 150,
+          width: double.infinity,
+          decoration: BoxDecoration(gradient: LinearGradient(colors: [c[0].withAlpha(170), c[1].withAlpha(110)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(padding: const EdgeInsets.all(8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [if (esquerda != null) esquerda!, const Spacer(), if (direita != null) direita!])),
+          ),
+        ),
+        if (proprio)
+          Positioned(
+            right: 12,
+            bottom: 10,
+            child: Toque(
+              aoTocar: () => emBreve(context, 'Alterar banner'),
+              child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.black.withAlpha(110), borderRadius: BorderRadius.circular(14)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.photo_camera_outlined, size: 15, color: Colors.white), SizedBox(width: 5), Text('Banner', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700))])),
+            ),
+          ),
+        Positioned(left: 16, bottom: -44, child: AvatarUsuario(usuario, raio: 40, anel: true)),
+      ]),
+      const SizedBox(height: 54),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [Flexible(child: Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800))), Selos(p.selos, tamanho: 20)]),
+              const SizedBox(height: 4),
+              Row(children: [
+                Text('@${p.usuario}', style: const TextStyle(color: Cores.texto2)),
+                const SizedBox(width: 8),
+                Toque(
+                  aoTocar: () {
+                    Clipboard.setData(ClipboardData(text: '${p.id}'));
+                    aviso(context, 'ID ${p.id} copiado.');
+                  },
+                  child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(8)), child: Text('ID ${p.id}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Cores.texto2))),
+                ),
+              ]),
+            ]),
+          ),
+          if (acao != null) acao!,
+        ]),
+      ),
+      if (p.bio.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 0), child: Text(p.bio)),
+    ]);
+  }
 }

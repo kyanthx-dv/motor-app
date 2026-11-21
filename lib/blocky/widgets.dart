@@ -7,17 +7,18 @@ import 'dados.dart';
 final ValueNotifier<bool> temaEscuro = ValueNotifier<bool>(true);
 
 class Cores {
-  static Color get fundo => temaEscuro.value ? const Color(0xFF0B0D12) : const Color(0xFFF5F6FA);
-  static Color get cartao => temaEscuro.value ? const Color(0xFF151821) : const Color(0xFFFFFFFF);
-  static Color get cartao2 => temaEscuro.value ? const Color(0xFF1F2330) : const Color(0xFFE9ECF3);
-  static const acento = Color(0xFF7C5CFF);
+  static Color get fundo => temaEscuro.value ? const Color(0xFF111215) : const Color(0xFFF3F0EA);
+  static Color get cartao => temaEscuro.value ? const Color(0xFF1A1C20) : const Color(0xFFFFFFFF);
+  static Color get cartao2 => temaEscuro.value ? const Color(0xFF24262C) : const Color(0xFFE8E4DB);
+  static const acento = Color(0xFF6C63F2);
   static const acento2 = Color(0xFF38BDF8);
   static const verde = Color(0xFF22C55E);
   static const texto2 = Color(0xFF8A93A3); // legivel nos dois temas
 }
 
 /// Degrade da marca (violeta -> azul).
-const LinearGradient degradeMarca = LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF38BDF8)], begin: Alignment.centerLeft, end: Alignment.centerRight);
+/// Marca: indigo solido (degrade quase imperceptivel, so para dar corpo ao botao).
+const LinearGradient degradeMarca = LinearGradient(colors: [Color(0xFF6F66F5), Color(0xFF5E56E6)], begin: Alignment.topCenter, end: Alignment.bottomCenter);
 
 ThemeData temaBlocky(bool escuro) {
   final forma = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
@@ -104,7 +105,7 @@ class BotaoPrimario extends StatelessWidget {
           child: Container(
             height: altura,
             padding: const EdgeInsets.symmetric(horizontal: 22),
-            decoration: BoxDecoration(gradient: cor ?? degradeMarca, borderRadius: BorderRadius.circular(altura / 2.8), boxShadow: [BoxShadow(color: Cores.acento.withAlpha(70), blurRadius: 16, offset: const Offset(0, 6))]),
+            decoration: BoxDecoration(gradient: cor ?? degradeMarca, borderRadius: BorderRadius.circular(altura / 2.8), boxShadow: [BoxShadow(color: Colors.black.withAlpha(temaEscuro.value ? 70 : 28), blurRadius: 8, offset: const Offset(0, 3))]),
             child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
               if (icone != null) ...[Icon(icone, color: Colors.white, size: 22), const SizedBox(width: 8)],
               Text(texto, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
