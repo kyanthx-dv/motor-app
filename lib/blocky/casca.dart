@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'icones.dart';
 import 'abas.dart';
 import 'criar.dart';
-import 'projeto.dart';
 import 'widgets.dart';
 
 /// Estrutura principal: 4 abas. Criar nao tem botao fixo: cada aba tem sua acao no lugar onde faz sentido

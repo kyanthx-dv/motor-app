@@ -480,18 +480,6 @@ void _menuPerfil(BuildContext context) => showModalBottomSheet<void>(
       ),
     );
 
-class _Numero extends StatelessWidget {
-  const _Numero(this.valor, this.rotulo);
-  final String valor;
-  final String rotulo;
-
-  @override
-  Widget build(BuildContext context) => Column(children: [
-        Text(valor, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-        Text(rotulo, style: const TextStyle(color: Cores.texto2, fontSize: 12)),
-      ]);
-}
-
 /// Estado do jogo: bolinha colorida + texto discreto (sem selo chamativo).
 class _Estado extends StatelessWidget {
   const _Estado(this.texto, this.cor);
