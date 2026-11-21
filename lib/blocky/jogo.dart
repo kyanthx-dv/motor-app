@@ -80,7 +80,7 @@ class _JogoPaginaState extends State<JogoPagina> {
         SafeArea(
           top: false,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 8, 12, 8 + MediaQuery.of(context).viewInsets.bottom),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8), // o Scaffold ja sobe com o teclado
             child: Row(children: [
               Expanded(child: TextField(controller: _campo, decoration: const InputDecoration(hintText: 'Comentar…'))),
               const SizedBox(width: 8),

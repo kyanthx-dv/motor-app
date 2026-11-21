@@ -97,11 +97,17 @@ class ItemLoja {
   final int preco; // 0 = gratis
 }
 
+/// Selos de perfil (vem do servidor; so a equipe concede verificado, bot, dono).
+enum Selo { dono, verificado, premium, bot }
+
 class Pessoa {
-  const Pessoa(this.usuario, this.nome, this.seguidores);
+  const Pessoa(this.usuario, this.nome, this.seguidores, {this.id = 0, this.selos = const [], this.bio = ''});
   final String usuario;
   final String nome;
   final int seguidores;
+  final int id; // ID numerico fixo da conta (nao muda como o @usuario)
+  final List<Selo> selos;
+  final String bio;
 }
 
 class Aviso {
@@ -238,11 +244,12 @@ const itensLojaExemplo = <ItemLoja>[
 ];
 
 const pessoasExemplo = <Pessoa>[
-  Pessoa('kyanthx', 'Kyan', 1200),
-  Pessoa('luna', 'Luna Games', 8400),
-  Pessoa('zed', 'Zed', 560),
-  Pessoa('ana_01', 'Ana', 90),
-  Pessoa('bob', 'Bob', 33),
+  Pessoa('kyanthx', 'Kyan', 1200, id: 1, selos: [Selo.dono, Selo.verificado], bio: 'Criando jogos 2D com o Motor.'),
+  Pessoa('luna', 'Luna Games', 8400, id: 1042, selos: [Selo.verificado, Selo.premium], bio: 'RPGs e pixel art.'),
+  Pessoa('zed', 'Zed', 560, id: 2210, selos: [Selo.premium], bio: 'Plataformas rápidas.'),
+  Pessoa('ana_01', 'Ana', 90, id: 3871, bio: 'Aprendendo a fazer jogos.'),
+  Pessoa('bob', 'Bob', 33, id: 4120),
+  Pessoa('blocky', 'Blocky', 15000, id: 2, selos: [Selo.bot, Selo.verificado], bio: 'Conta oficial de avisos e novidades.'),
 ];
 
 const avisosExemplo = <Aviso>[

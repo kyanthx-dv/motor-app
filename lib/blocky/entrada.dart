@@ -5,7 +5,7 @@ import 'dados.dart';
 import 'abertura.dart';
 import 'widgets.dart';
 
-/// Login (modo demonstracao: ainda nao liga no Supabase).
+/// Login / criar conta (modo demonstracao: ainda nao liga no Supabase).
 class EntradaTela extends StatefulWidget {
   const EntradaTela({super.key});
 
@@ -14,63 +14,121 @@ class EntradaTela extends StatefulWidget {
 }
 
 class _EntradaTelaState extends State<EntradaTela> {
+  final _usuario = TextEditingController();
   final _email = TextEditingController();
   final _senha = TextEditingController();
+  bool _criar = false;
   bool _idade = false;
+  bool _ver = false;
 
   @override
   void dispose() {
+    _usuario.dispose();
     _email.dispose();
     _senha.dispose();
     super.dispose();
   }
 
-  void _entrar() => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => const BoasVindasTela()));
+  void _seguir() => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => const BoasVindasTela()));
 
-  void _criar() {
-    if (!_idade) {
+  void _enviar() {
+    if (_criar && !_idade) {
       aviso(context, 'É preciso ter 13 anos ou mais para criar conta.');
       return;
     }
-    _entrar();
+    _seguir();
+  }
+
+  Widget _modo(String t, bool criar) {
+    final ativo = _criar == criar;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _criar = criar),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(color: ativo ? Cores.cartao : Colors.transparent, borderRadius: BorderRadius.circular(14)),
+          child: Center(child: Text(t, style: TextStyle(fontWeight: FontWeight.w800, color: ativo ? null : Cores.texto2))),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
+        body: Column(children: [
+          Expanded(
+            flex: 2,
+            child: SafeArea(
+              bottom: false,
+              child: Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const LogoBlocky(tamanho: 84),
-                  const SizedBox(height: 8),
-                  const Text('Blocky', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800)),
-                  const Text('Crie, jogue e compartilhe jogos 2D', style: TextStyle(color: Cores.texto2)),
-                  const SizedBox(height: 28),
-                  TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'E-mail')),
-                  const SizedBox(height: 12),
-                  TextField(controller: _senha, obscureText: true, decoration: const InputDecoration(hintText: 'Senha (8+ caracteres)')),
-                  const SizedBox(height: 8),
-                  CheckboxListTile(
-                    value: _idade,
-                    onChanged: (v) => setState(() => _idade = v ?? false),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Tenho 13 anos ou mais', style: TextStyle(fontSize: 13)),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(width: double.infinity, child: BotaoPrimario(texto: 'Entrar', aoTocar: _entrar)),
-                  const SizedBox(height: 8),
-                  SizedBox(width: double.infinity, height: 48, child: OutlinedButton(onPressed: _criar, child: const Text('Criar conta'))),
-                  const SizedBox(height: 16),
-                  const Text('Modo demonstração: dados de exemplo.', style: TextStyle(color: Cores.texto2, fontSize: 12)),
+                  const LogoBlocky(tamanho: 76),
+                  const SizedBox(height: 14),
+                  const Text('Blocky', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 0.6)),
+                  const SizedBox(height: 2),
+                  Text(_criar ? 'Crie sua conta e comece a construir' : 'Que bom te ver de volta', style: const TextStyle(color: Cores.texto2)),
                 ]),
               ),
             ),
           ),
-        ),
+          Expanded(
+            flex: 4,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(color: Cores.cartao, borderRadius: const BorderRadius.vertical(top: Radius.circular(32))),
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 440),
+                      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(18)),
+                          child: Row(children: [_modo('Entrar', false), _modo('Criar conta', true)]),
+                        ),
+                        const SizedBox(height: 18),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: _criar
+                              ? Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: _usuario, decoration: const InputDecoration(hintText: 'Nome de usuário', prefixIcon: Icon(Icons.alternate_email))))
+                              : const SizedBox(width: double.infinity),
+                        ),
+                        TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'E-mail', prefixIcon: Icon(Icons.mail_outline))),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _senha,
+                          obscureText: !_ver,
+                          decoration: InputDecoration(hintText: 'Senha (8+ caracteres)', prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_ver ? Icons.visibility_off_outlined : Icons.visibility_outlined), onPressed: () => setState(() => _ver = !_ver))),
+                        ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: _criar
+                              ? CheckboxListTile(value: _idade, onChanged: (v) => setState(() => _idade = v ?? false), controlAffinity: ListTileControlAffinity.leading, contentPadding: EdgeInsets.zero, title: const Text('Tenho 13 anos ou mais', style: TextStyle(fontSize: 13)))
+                              : Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => emBreve(context, 'Recuperar senha'), child: const Text('Esqueci a senha'))),
+                        ),
+                        const SizedBox(height: 8),
+                        BotaoPrimario(texto: _criar ? 'Criar conta' : 'Entrar', aoTocar: _enviar),
+                        const SizedBox(height: 6),
+                        TextButton(onPressed: _seguir, child: const Text('Continuar como visitante')),
+                        const Text('Modo demonstração: dados de exemplo.', textAlign: TextAlign.center, style: TextStyle(color: Cores.texto2, fontSize: 11)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ]),
       );
 }
 
