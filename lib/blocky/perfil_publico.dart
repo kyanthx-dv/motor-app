@@ -133,60 +133,59 @@ class PerfilPublicoTela extends StatelessWidget {
   const PerfilPublicoTela({super.key, required this.usuario});
   final String usuario;
 
+  void _ir(BuildContext context, Widget w) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
+
   @override
   Widget build(BuildContext context) {
     final p = pessoaDe(usuario);
     final jogos = jogosExemplo.where((j) => j.autor == usuario).toList();
     final posts = postsExemplo.where((x) => x.autor == usuario).toList();
     final itens = itensLojaExemplo.where((i) => i.autor == usuario).toList();
+    Widget vazio() => const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Nada publicado ainda.', style: TextStyle(color: Cores.texto2))));
     return Scaffold(
-      body: ListView(padding: EdgeInsets.zero, children: [
-        CabecalhoPerfil(usuario: usuario, esquerda: IconButton.filledTonal(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), acao: const BotaoSeguir()),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-          child: Row(children: [_num('${abreviar(p.seguidores)}', 'seguidores'), const SizedBox(width: 28), _num('${jogos.length}', 'jogos'), const SizedBox(width: 28), _num('${posts.length}', 'posts')]),
-        ),
-        if (jogos.isNotEmpty) ...[
-          _titulo('Jogos'),
-          SizedBox(
-            height: 130,
-            child: ListView.separated(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20), itemCount: jogos.length, separatorBuilder: (_, __) => const SizedBox(width: 12), itemBuilder: (_, i) => CartaoJogo(jogo: jogos[i], largura: 170, aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPagina(jogo: jogos[i]))))),
-          ),
-        ],
-        if (itens.isNotEmpty) ...[
-          _titulo('Assets e PFPs'),
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: itens.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => Toque(aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ItemPagina(item: itens[i]))), child: SizedBox(width: 110, child: Capa(cor1: itens[i].cor1, cor2: itens[i].cor2, icone: itens[i].icone))),
+      body: DefaultTabController(
+        length: 3,
+        child: NestedScrollView(
+          headerSliverBuilder: (_, __) => [
+            SliverToBoxAdapter(
+              child: CabecalhoPerfil(
+                usuario: usuario,
+                esquerda: IconButton.filledTonal(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)),
+                stats: [('${jogos.length + posts.length + itens.length}', 'Publicações'), (abreviar(p.seguidores), 'Seguidores'), ('${p.seguindo}', 'Seguindo')],
+                botoes: Row(children: [
+                  const BotaoSeguir(),
+                  const SizedBox(width: 10),
+                  Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Mensagens'), child: const Text('Mensagem'))),
+                ]),
+              ),
             ),
-          ),
-        ],
-        if (posts.isNotEmpty) ...[_titulo('Posts'), Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Column(children: [for (final x in posts) CartaoPost(post: x)]))],
-        if (jogos.isEmpty && posts.isEmpty && itens.isEmpty) const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Nada publicado ainda.', style: TextStyle(color: Cores.texto2)))),
-        const SizedBox(height: 30),
-      ]),
+            SliverPersistentHeader(pinned: true, delegate: TabsFixas(const BarraAbas(['Jogos', 'Assets', 'Posts']))),
+          ],
+          body: TabBarView(children: [
+            jogos.isEmpty
+                ? vazio()
+                : GridView.count(padding: const EdgeInsets.all(14), crossAxisCount: 2, mainAxisSpacing: 14, crossAxisSpacing: 12, childAspectRatio: 1.2, children: [for (final j in jogos) CartaoJogo(jogo: j, aoTocar: () => _ir(context, JogoPagina(jogo: j)))]),
+            itens.isEmpty
+                ? vazio()
+                : GridView.count(padding: const EdgeInsets.all(14), crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, children: [for (final i in itens) Toque(aoTocar: () => _ir(context, ItemPagina(item: i)), child: Capa(cor1: i.cor1, cor2: i.cor2, icone: i.icone))]),
+            posts.isEmpty ? vazio() : ListView(padding: const EdgeInsets.all(14), children: [for (final x in posts) CartaoPost(post: x)]),
+          ]),
+        ),
+      ),
     );
   }
-
-  Widget _titulo(String t) => Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 10), child: Text(t, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)));
-
-  Widget _num(String v, String r) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(v, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), Text(r, style: const TextStyle(color: Cores.texto2, fontSize: 12))]);
 }
 
 /// Topo de perfil (proprio e publico): banner, foto, nome + selos, @usuario e ID.
 /// O banner e um espaco pronto: hoje degrade; depois mostra a imagem enviada.
 class CabecalhoPerfil extends StatelessWidget {
-  const CabecalhoPerfil({super.key, required this.usuario, this.esquerda, this.direita, this.proprio = false, this.acao});
+  const CabecalhoPerfil({super.key, required this.usuario, this.esquerda, this.direita, this.proprio = false, this.stats = const [], this.botoes});
   final String usuario;
   final Widget? esquerda; // ex.: voltar
   final Widget? direita; // ex.: configuracoes
   final bool proprio;
-  final Widget? acao; // ex.: Seguir
+  final List<(String, String)> stats; // numeros ao lado da foto
+  final Widget? botoes; // linha de botoes abaixo da bio
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +194,7 @@ class CabecalhoPerfil extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Stack(clipBehavior: Clip.none, children: [
         Container(
-          height: 150,
+          height: 130,
           width: double.infinity,
           decoration: BoxDecoration(gradient: LinearGradient(colors: [c[0].withAlpha(170), c[1].withAlpha(110)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
           child: SafeArea(
@@ -212,33 +211,40 @@ class CabecalhoPerfil extends StatelessWidget {
               child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.black.withAlpha(110), borderRadius: BorderRadius.circular(14)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Ic.camera, size: 15, color: Colors.white), SizedBox(width: 5), Text('Banner', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700))])),
             ),
           ),
-        Positioned(left: 16, bottom: -44, child: AvatarUsuario(usuario, raio: 40, anel: true)),
+        Positioned(left: 16, bottom: -42, child: AvatarUsuario(usuario, raio: 40, anel: true)),
       ]),
-      const SizedBox(height: 54),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+        child: Row(children: [
+          const SizedBox(width: 100),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Flexible(child: Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800))), Selos(p.selos, tamanho: 20)]),
-              const SizedBox(height: 4),
-              Row(children: [
-                Text('@${p.usuario}', style: const TextStyle(color: Cores.texto2)),
-                const SizedBox(width: 8),
-                Toque(
-                  aoTocar: () {
-                    Clipboard.setData(ClipboardData(text: '${p.id}'));
-                    aviso(context, 'ID ${p.id} copiado.');
-                  },
-                  child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(8)), child: Text('ID ${p.id}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Cores.texto2))),
-                ),
-              ]),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              for (final s in stats) Column(children: [Text(s.$1, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)), Text(s.$2, style: const TextStyle(color: Cores.texto2, fontSize: 12))]),
             ]),
           ),
-          if (acao != null) acao!,
         ]),
       ),
-      if (p.bio.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 0), child: Text(p.bio)),
+      const SizedBox(height: 14),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Flexible(child: Text(p.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800))), Selos(p.selos, tamanho: 20)]),
+          const SizedBox(height: 4),
+          Row(children: [
+            Text('@${p.usuario}', style: const TextStyle(color: Cores.texto2)),
+            const SizedBox(width: 8),
+            Toque(
+              aoTocar: () {
+                Clipboard.setData(ClipboardData(text: '${p.id}'));
+                aviso(context, 'ID ${p.id} copiado.');
+              },
+              child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(8)), child: Text('ID ${p.id}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Cores.texto2))),
+            ),
+          ]),
+          if (p.bio.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(p.bio)),
+        ]),
+      ),
+      if (botoes != null) Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 12), child: botoes),
     ]);
   }
 }

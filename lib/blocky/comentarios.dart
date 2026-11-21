@@ -32,7 +32,13 @@ class ControleComentarios extends ChangeNotifier {
   void enviar() {
     final t = campo.text.trim();
     if (t.isEmpty) return;
-    (alvo?.resp ?? itens).add(Cm('você', t));
+    if (alvo == null) {
+      itens.add(Cm('você', t));
+    } else {
+      // um nivel so (como no Instagram): resposta a resposta fica na mesma conversa, com @nome
+      final raiz = itens.firstWhere((m) => m == alvo || m.resp.contains(alvo));
+      raiz.resp.add(Cm('você', alvo == raiz ? t : '@${alvo!.autor} $t'));
+    }
     alvo = null;
     campo.clear();
     notifyListeners();
