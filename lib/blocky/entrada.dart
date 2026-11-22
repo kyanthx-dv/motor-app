@@ -133,9 +133,11 @@ class _EntradaTelaState extends State<EntradaTela> {
                         const SizedBox(height: 12),
                         TextField(
                           controller: _senha,
+                          onChanged: (_) => setState(() {}),
                           obscureText: !_ver,
                           decoration: InputDecoration(hintText: 'Senha (8+ caracteres)', prefixIcon: const Icon(Ic.cadeado), suffixIcon: IconButton(icon: Icon(_ver ? Ic.olhoFechado : Ic.olho), onPressed: () => setState(() => _ver = !_ver))),
                         ),
+                        if (_criar) ForcaSenha(_senha.text),
                         AnimatedSize(
                           duration: const Duration(milliseconds: 240),
                           curve: Curves.easeOutCubic,
