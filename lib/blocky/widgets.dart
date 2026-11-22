@@ -181,7 +181,8 @@ class PilulaAcao extends StatelessWidget {
 
 /// Imagem de capa de exemplo: degrade com icone (no lugar de imagens reais).
 class Capa extends StatelessWidget {
-  const Capa({super.key, required this.cor1, required this.cor2, required this.icone, this.raio = 14, this.video = false, this.tamanhoIcone = 44});
+  const Capa({super.key, required this.cor1, required this.cor2, required this.icone, this.raio = 14, this.video = false, this.tamanhoIcone = 44, this.midia});
+  final String? midia;
   final Color cor1;
   final Color cor2;
   final IconData icone;
@@ -199,7 +200,8 @@ class Capa extends StatelessWidget {
       child: Container(
         color: a,
         child: Stack(children: [
-          Center(child: Icon(icone, size: tamanhoIcone * 0.8, color: (temaEscuro.value ? Colors.white : Colors.black).withAlpha(95))),
+          if (midia != null && !video) Positioned.fill(child: Image.network(midia!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink(), loadingBuilder: (_, w, p) => p == null ? w : const SizedBox.shrink()))
+          else Center(child: Icon(icone, size: tamanhoIcone * 0.8, color: (temaEscuro.value ? Colors.white : Colors.black).withAlpha(95))),
           if (video)
             Positioned(
               right: 8,

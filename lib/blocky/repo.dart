@@ -54,6 +54,7 @@ class RepoPosts extends ChangeNotifier {
       cor2: capasCores[pi].$2,
       icone: capasIcones[ii],
       video: r['video'] == true,
+      midia: ex['m'] as String?,
       curtidas: (r['curtidas'] as num?)?.toInt() ?? 0,
       totalComentarios: (r['comentarios'] as num?)?.toInt() ?? 0,
     );
@@ -90,8 +91,8 @@ class RepoPosts extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> publicar({required String titulo, required String descricao, required int paleta, required int icone}) async {
-    await Nuvem.i.publicar(tipo: 'post', titulo: titulo, descricao: descricao, extras: {'p': paleta, 'i': icone});
+  Future<void> publicar({required String titulo, required String descricao, required int paleta, required int icone, String? midia, bool video = false}) async {
+    await Nuvem.i.publicar(tipo: 'post', titulo: titulo, descricao: descricao, video: video, extras: {'p': paleta, 'i': icone, if (midia != null) 'm': midia});
     await carregar();
   }
 

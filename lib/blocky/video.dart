@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
+import 'avisos.dart';
 import 'comentarios.dart';
 import 'dados.dart';
 import 'extras.dart';
 import 'icones.dart';
 import 'perfil_publico.dart';
+import 'repo.dart';
 import 'widgets.dart';
 
 /// Posts de video: tela cheia vertical, estilo reels. PROVISORIO: o tempo e simulado ate o player real entrar.
@@ -17,8 +20,9 @@ class VideoPostTela extends StatefulWidget {
 }
 
 class _VideoPostTelaState extends State<VideoPostTela> {
-  late final List<Post> _videos = postsExemplo.where((p) => p.video).toList();
+  late final List<Post> _videos = [...RepoPosts.i.posts.where((p) => p.video), ...postsExemplo.where((p) => p.video)];
   late final PageController _pg = PageController(initialPage: _videos.indexWhere((p) => p.id == widget.inicial.id).clamp(0, _videos.length - 1));
+  late int _atual = _pg.initialPage;
 
   @override
   void dispose() {
@@ -30,15 +34,16 @@ class _VideoPostTelaState extends State<VideoPostTela> {
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: Colors.black,
         body: Stack(children: [
-          PageView.builder(scrollDirection: Axis.vertical, controller: _pg, itemCount: _videos.length, itemBuilder: (_, i) => _Reel(post: _videos[i])),
+          PageView.builder(scrollDirection: Axis.vertical, controller: _pg, itemCount: _videos.length, onPageChanged: (i) => setState(() => _atual = i), itemBuilder: (_, i) => _Reel(post: _videos[i], ativo: i == _atual)),
           SafeArea(child: Padding(padding: const EdgeInsets.all(8), child: IconButton(icon: const Icon(Ic.voltar, color: Colors.white), onPressed: () => Navigator.pop(context)))),
         ]),
       );
 }
 
 class _Reel extends StatefulWidget {
-  const _Reel({required this.post});
+  const _Reel({required this.post, required this.ativo});
   final Post post;
+  final bool ativo;
 
   @override
   State<_Reel> createState() => _ReelState();
@@ -50,14 +55,55 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
   bool _curtiu = false;
   bool _fav = false;
   bool _pausado = false;
+  VideoPlayerController? _vc; // video real (null = tempo simulado dos exemplos)
+
+  @override
+  void initState() {
+    super.initState();
+    final url = widget.post.midia;
+    if (url != null) {
+      _t.stop();
+      _vc = VideoPlayerController.networkUrl(Uri.parse(url))
+        ..setLooping(true)
+        ..initialize().then((_) {
+          if (!mounted) return;
+          setState(() {});
+          if (widget.ativo) _vc!.play();
+        }).catchError((Object e) {
+          Avisos.add(Nivel.erro, 'Vídeo: $e');
+        });
+      _vc!.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_Reel old) {
+    super.didUpdateWidget(old);
+    final c = _vc;
+    if (c == null || !c.value.isInitialized || old.ativo == widget.ativo) return;
+    if (widget.ativo && !_pausado) {
+      c.play();
+    } else {
+      c.pause();
+    }
+  }
 
   @override
   void dispose() {
     _t.dispose();
+    _vc?.dispose();
     super.dispose();
   }
 
   void _pular(int s) {
+    final c = _vc;
+    if (c != null) {
+      final d = c.value.duration.inMilliseconds;
+      c.seekTo(Duration(milliseconds: (c.value.position.inMilliseconds + s * 1000).clamp(0, d)));
+      return;
+    }
     final v = (_t.value + s / _dur).clamp(0.0, 1.0);
     _t.value = v;
     if (!_pausado) _t.repeat(min: 0, max: 1, period: const Duration(seconds: _dur));
@@ -65,6 +111,11 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
 
   void _alternar() {
     setState(() => _pausado = !_pausado);
+    final c = _vc;
+    if (c != null) {
+      _pausado ? c.pause() : c.play();
+      return;
+    }
     if (_pausado) {
       _t.stop();
     } else {
@@ -72,8 +123,21 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
     }
   }
 
+  bool get _real => widget.post.autorId.isNotEmpty;
+  bool get _cur => _real ? RepoPosts.i.curtiu(widget.post) : _curtiu;
+  bool get _favo => _real ? RepoPosts.i.favoritou(widget.post) : _fav;
+
+  double get _prog {
+    final c = _vc;
+    if (c == null) return _t.value;
+    final d = c.value.duration.inMilliseconds;
+    return d == 0 ? 0 : (c.value.position.inMilliseconds / d).clamp(0.0, 1.0);
+  }
+
+  int get _total => _vc != null && _vc!.value.isInitialized ? _vc!.value.duration.inSeconds : _dur;
+
   String _tempo(double v) {
-    final s = (v * _dur).round();
+    final s = (v * _total).round();
     return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
   }
 
@@ -92,20 +156,27 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final p = widget.post;
+    return ListenableBuilder(listenable: RepoPosts.i, builder: (context, _) => _corpo(context, p));
+  }
+
+  Widget _corpo(BuildContext context, Post p) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _alternar,
       child: Stack(fit: StackFit.expand, children: [
-        Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, tamanhoIcone: 120, raio: 0),
+        if (_vc != null && _vc!.value.isInitialized)
+          ColoredBox(color: Colors.black, child: Center(child: AspectRatio(aspectRatio: _vc!.value.aspectRatio, child: VideoPlayer(_vc!))))
+        else
+          Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, tamanhoIcone: 120, raio: 0),
         const ColoredBox(color: Color(0x66000000)),
         Center(child: AnimatedOpacity(opacity: _pausado ? 1 : 0, duration: const Duration(milliseconds: 150), child: Container(width: 72, height: 72, decoration: const BoxDecoration(color: Color(0x66000000), shape: BoxShape.circle), child: const Icon(Ic.play, size: 40, color: Colors.white)))),
         Positioned(
           right: 10,
           bottom: 120,
           child: Column(children: [
-            _lado(_curtiu ? Ic.coracaoCheio : Ic.coracao, abreviar(p.curtidas + (_curtiu ? 1 : 0)), () => setState(() => _curtiu = !_curtiu), cor: _curtiu ? Colors.redAccent : null),
+            _lado(_cur ? Ic.coracaoCheio : Ic.coracao, abreviar(_real ? RepoPosts.i.curtidas(p) : p.curtidas + (_curtiu ? 1 : 0)), () => _real ? tentar(context, () => RepoPosts.i.alternar(p, 'curtida')) : setState(() => _curtiu = !_curtiu), cor: _cur ? Colors.redAccent : null),
             _lado(Ic.balao, '${p.numComentarios}', () => p.autorId.isEmpty ? abrirComentarios(context, p.comentarios) : abrirComentarios(context, const [], tipo: 'post', id: p.id)),
-            _lado(_fav ? Ic.estrelaCheia : Ic.estrela, abreviar(p.curtidas ~/ 3 + (_fav ? 1 : 0)), () => setState(() => _fav = !_fav), cor: _fav ? const Color(0xFFFBBF24) : null),
+            _lado(_favo ? Ic.estrelaCheia : Ic.estrela, abreviar(_real ? RepoPosts.i.favoritos(p) : p.curtidas ~/ 3 + (_fav ? 1 : 0)), () => _real ? tentar(context, () => RepoPosts.i.alternar(p, 'favorito')) : setState(() => _fav = !_fav), cor: _favo ? const Color(0xFFFBBF24) : null),
             _lado(Ic.compartilhar, 'Enviar', () => emBreve(context, 'Compartilhar')),
           ]),
         ),
@@ -114,7 +185,7 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
           right: 76,
           bottom: 66,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Row(children: [Flexible(child: ChipAutor(p.autor, raio: 18)), const SizedBox(width: 10), const BotaoSeguir()]),
+            Row(children: [Flexible(child: ChipAutor(p.autor, raio: 18)), const SizedBox(width: 10), BotaoSeguir(usuario: p.autor)]),
             const SizedBox(height: 10),
             Text(p.titulo, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
@@ -131,13 +202,24 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
               animation: _t,
               builder: (_, __) => Row(children: [
                 IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Ic.volta10, color: Colors.white), onPressed: () => _pular(-10)),
-                Text(_tempo(_t.value), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                Text(_tempo(_prog), style: const TextStyle(color: Colors.white, fontSize: 12)),
                 Expanded(
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), overlayShape: SliderComponentShape.noOverlay, activeTrackColor: Colors.white, inactiveTrackColor: Colors.white24, thumbColor: Colors.white),
-                    child: Slider(value: _t.value, onChanged: (v) => _t.value = v, onChangeEnd: (_) {
-                      if (!_pausado) _t.repeat(period: const Duration(seconds: _dur));
-                    }),
+                    child: Slider(
+                      value: _prog,
+                      onChanged: (x) {
+                        final c = _vc;
+                        if (c != null) {
+                          c.seekTo(Duration(milliseconds: (x * c.value.duration.inMilliseconds).round()));
+                        } else {
+                          _t.value = x;
+                        }
+                      },
+                      onChangeEnd: (_) {
+                        if (_vc == null && !_pausado) _t.repeat(period: const Duration(seconds: _dur));
+                      },
+                    ),
                   ),
                 ),
                 Text(_tempo(1), style: const TextStyle(color: Colors.white, fontSize: 12)),

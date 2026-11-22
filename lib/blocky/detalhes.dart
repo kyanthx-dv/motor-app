@@ -96,7 +96,7 @@ class PostPagina extends StatelessWidget {
           _autor(post.autor, '11 nov'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: AspectRatio(aspectRatio: 4 / 3, child: Capa(cor1: post.cor1, cor2: post.cor2, icone: post.icone, video: post.video, tamanhoIcone: 72, raio: 16)),
+            child: AspectRatio(aspectRatio: 4 / 3, child: Capa(cor1: post.cor1, cor2: post.cor2, icone: post.icone, video: post.video, midia: post.midia, tamanhoIcone: 72, raio: 16)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),

@@ -148,7 +148,7 @@ class PerfilPublicoTela extends StatelessWidget {
                 esquerda: IconButton.filledTonal(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)),
                 stats: [('${jogos.length + posts.length + itens.length}', 'Publicações'), (abreviar(p.seguidores), 'Seguidores'), ('${p.seguindo}', 'Seguindo')],
                 botoes: Row(children: [
-                  const BotaoSeguir(),
+                  BotaoSeguir(usuario: usuario),
                   const SizedBox(width: 10),
                   Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Mensagens'), child: const Text('Mensagem'))),
                 ]),

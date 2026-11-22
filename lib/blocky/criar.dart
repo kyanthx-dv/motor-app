@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'avisos.dart';
 import 'icones.dart';
@@ -46,6 +49,8 @@ class _NovoPostTelaState extends State<NovoPostTela> {
   int _paleta = 0;
   int _icone = 0;
   bool _enviando = false;
+  File? _arquivo;
+  bool _ehVideo = false;
 
   @override
   void dispose() {
@@ -54,13 +59,34 @@ class _NovoPostTelaState extends State<NovoPostTela> {
     super.dispose();
   }
 
+  Future<void> _escolher(bool video) async {
+    try {
+      final picker = ImagePicker();
+      final x = video ? await picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(minutes: 3)) : await picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, imageQuality: 85);
+      if (x == null || !mounted) return;
+      final f = File(x.path);
+      if (await f.length() > Nuvem.limiteMidia) {
+        if (mounted) aviso(context, 'Arquivo grande demais (máximo 50 MB).');
+        return;
+      }
+      setState(() {
+        _arquivo = f;
+        _ehVideo = video;
+      });
+    } catch (e) {
+      Avisos.add(Nivel.erro, 'Escolher arquivo: $e');
+      if (mounted) aviso(context, 'Não consegui abrir a galeria.');
+    }
+  }
+
   Future<void> _publicar() async {
     if (_enviando) return;
     if (!Nuvem.i.logado) return aviso(context, 'Entre na sua conta para publicar.');
     if (_titulo.text.trim().isEmpty) return aviso(context, 'Escreva um título.');
     setState(() => _enviando = true);
     try {
-      await RepoPosts.i.publicar(titulo: _titulo.text, descricao: _desc.text, paleta: _paleta, icone: _icone);
+      final url = _arquivo == null ? null : await Nuvem.i.enviarMidia(_arquivo!);
+      await RepoPosts.i.publicar(titulo: _titulo.text, descricao: _desc.text, paleta: _paleta, icone: _icone, midia: url, video: _ehVideo);
       if (!mounted) return;
       Navigator.pop(context);
       aviso(context, 'Post publicado!');
@@ -76,7 +102,19 @@ class _NovoPostTelaState extends State<NovoPostTela> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Novo post')),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          AspectRatio(aspectRatio: 16 / 9, child: Capa(cor1: capasCores[_paleta].$1, cor2: capasCores[_paleta].$2, icone: capasIcones[_icone], tamanhoIcone: 56, raio: 16)),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _arquivo != null && !_ehVideo
+                ? ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(_arquivo!, fit: BoxFit.cover))
+                : Capa(cor1: capasCores[_paleta].$1, cor2: capasCores[_paleta].$2, icone: capasIcones[_icone], tamanhoIcone: 56, raio: 16, video: _arquivo != null && _ehVideo),
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: _enviando ? null : () => _escolher(false), icon: const Icon(Ic.imagem), label: const Text('Foto'))),
+            const SizedBox(width: 10),
+            Expanded(child: OutlinedButton.icon(onPressed: _enviando ? null : () => _escolher(true), icon: const Icon(Ic.play), label: const Text('Vídeo'))),
+            if (_arquivo != null) IconButton(tooltip: 'Remover', onPressed: () => setState(() => _arquivo = null), icon: const Icon(Ic.fechar)),
+          ]),
           const SizedBox(height: 10),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             for (var i = 0; i < capasCores.length; i++)
@@ -105,7 +143,7 @@ class _NovoPostTelaState extends State<NovoPostTela> {
               ),
           ]),
           const SizedBox(height: 6),
-          const Text('Fotos e vídeos próprios entram quando o envio de arquivos estiver pronto.', style: TextStyle(color: Cores.texto2, fontSize: 12)),
+          Text(_arquivo == null ? 'Sem arquivo, o post usa a capa colorida acima.' : (_ehVideo ? 'Vídeo escolhido (até 50 MB).' : 'Foto escolhida.'), style: const TextStyle(color: Cores.texto2, fontSize: 12)),
           const SizedBox(height: 14),
           TextField(controller: _titulo, maxLength: 80, decoration: const InputDecoration(labelText: 'Título')),
           const SizedBox(height: 8),
