@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'avisos.dart';
 import 'icones.dart';
+import 'nuvem.dart';
+import 'repo.dart';
 import 'widgets.dart';
 
 /// Loja > Publicar: escolhe entre asset e PFP.
@@ -40,8 +43,9 @@ class NovoPostTela extends StatefulWidget {
 class _NovoPostTelaState extends State<NovoPostTela> {
   final _titulo = TextEditingController();
   final _desc = TextEditingController();
-  bool _video = false;
-  bool _midia = false;
+  int _paleta = 0;
+  int _icone = 0;
+  bool _enviando = false;
 
   @override
   void dispose() {
@@ -50,49 +54,67 @@ class _NovoPostTelaState extends State<NovoPostTela> {
     super.dispose();
   }
 
-  void _publicar() {
-    if (!_midia) return aviso(context, 'Escolha uma imagem ou vídeo.');
+  Future<void> _publicar() async {
+    if (_enviando) return;
+    if (!Nuvem.i.logado) return aviso(context, 'Entre na sua conta para publicar.');
     if (_titulo.text.trim().isEmpty) return aviso(context, 'Escreva um título.');
-    if (_desc.text.trim().isEmpty) return aviso(context, 'Escreva uma descrição.');
-    Navigator.pop(context);
-    emBreve(context, 'Publicar post');
+    setState(() => _enviando = true);
+    try {
+      await RepoPosts.i.publicar(titulo: _titulo.text, descricao: _desc.text, paleta: _paleta, icone: _icone);
+      if (!mounted) return;
+      Navigator.pop(context);
+      aviso(context, 'Post publicado!');
+    } on ErroNuvem catch (e) {
+      Avisos.add(Nivel.aviso, 'Publicar: ${e.msg}');
+      if (mounted) aviso(context, e.msg);
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Novo post')),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => setState(() => _midia = true),
-              child: Container(
-                decoration: BoxDecoration(color: Cores.cartao, borderRadius: BorderRadius.circular(14)),
-                child: Center(
-                  child: _midia
-                      ? Column(mainAxisSize: MainAxisSize.min, children: [Icon(_video ? Ic.video : Ic.imagem, size: 44, color: Cores.verde), Text(_video ? 'Vídeo (exemplo)' : 'Imagem (exemplo)')])
-                      : const Column(mainAxisSize: MainAxisSize.min, children: [Icon(Ic.addImagem, size: 44), Text('Toque para escolher imagem ou vídeo (obrigatório)')]),
+          AspectRatio(aspectRatio: 16 / 9, child: Capa(cor1: capasCores[_paleta].$1, cor2: capasCores[_paleta].$2, icone: capasIcones[_icone], tamanhoIcone: 56, raio: 16)),
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            for (var i = 0; i < capasCores.length; i++)
+              Toque(
+                aoTocar: () => setState(() => _paleta = i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [capasCores[i].$1, capasCores[i].$2]), border: Border.all(color: _paleta == i ? Colors.white : Colors.transparent, width: 2.5)),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SegmentedButton<bool>(
-            segments: const [ButtonSegment(value: false, label: Text('Imagem'), icon: Icon(Ic.imagem)), ButtonSegment(value: true, label: Text('Vídeo'), icon: Icon(Ic.video))],
-            selected: {_video},
-            onSelectionChanged: (s) => setState(() => _video = s.first),
-          ),
+          ]),
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            for (var i = 0; i < capasIcones.length; i++)
+              Toque(
+                aoTocar: () => setState(() => _icone = i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: _icone == i ? Cores.acento : Cores.cartao2, borderRadius: BorderRadius.circular(14)),
+                  child: Icon(capasIcones[i], size: 22, color: _icone == i ? Colors.white : Cores.texto2),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 6),
+          const Text('Fotos e vídeos próprios entram quando o envio de arquivos estiver pronto.', style: TextStyle(color: Cores.texto2, fontSize: 12)),
           const SizedBox(height: 14),
           TextField(controller: _titulo, maxLength: 80, decoration: const InputDecoration(labelText: 'Título')),
           const SizedBox(height: 8),
-          TextField(controller: _desc, maxLines: 4, maxLength: 500, decoration: const InputDecoration(labelText: 'Descrição')),
+          TextField(controller: _desc, minLines: 3, maxLines: 6, maxLength: 2000, decoration: const InputDecoration(labelText: 'Descrição')),
           const SizedBox(height: 12),
-          SizedBox(height: 48, child: FilledButton(onPressed: _publicar, child: const Text('Publicar'))),
+          BotaoPrimario(texto: _enviando ? 'Publicando…' : 'Publicar', aoTocar: _enviando ? null : _publicar),
         ]),
       );
 }
-
 class NovoItemTela extends StatefulWidget {
   const NovoItemTela({super.key, required this.pfp});
   final bool pfp;

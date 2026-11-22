@@ -104,7 +104,7 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
           bottom: 120,
           child: Column(children: [
             _lado(_curtiu ? Ic.coracaoCheio : Ic.coracao, abreviar(p.curtidas + (_curtiu ? 1 : 0)), () => setState(() => _curtiu = !_curtiu), cor: _curtiu ? Colors.redAccent : null),
-            _lado(Ic.balao, '${p.comentarios.length}', () => abrirComentarios(context, p.comentarios)),
+            _lado(Ic.balao, '${p.numComentarios}', () => p.autorId.isEmpty ? abrirComentarios(context, p.comentarios) : abrirComentarios(context, const [], tipo: 'post', id: p.id)),
             _lado(_fav ? Ic.estrelaCheia : Ic.estrela, abreviar(p.curtidas ~/ 3 + (_fav ? 1 : 0)), () => setState(() => _fav = !_fav), cor: _fav ? const Color(0xFFFBBF24) : null),
             _lado(Ic.compartilhar, 'Enviar', () => emBreve(context, 'Compartilhar')),
           ]),
