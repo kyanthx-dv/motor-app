@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'icones.dart';
 import 'abas.dart';
 import 'criar.dart';
-import 'projeto.dart';
 import 'widgets.dart';
 
 /// Estrutura principal: 4 abas + botao "+" central (Jogo, Assets, Post).
@@ -32,74 +31,47 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
     setState(() => _aba = n);
   }
 
-  void _criar() {
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Fechar',
-      barrierColor: const Color(0xF2141414),
-      transitionDuration: const Duration(milliseconds: 200),
-      transitionBuilder: (c, a, _, child) => FadeTransition(opacity: CurvedAnimation(parent: a, curve: Curves.easeOut), child: child),
-      pageBuilder: (ctx, _, __) {
-        Widget item(IconData i, Color cor, String t, VoidCallback f) => Toque(
-              aoTocar: () {
-                Navigator.pop(ctx);
-                f();
-              },
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(width: 64, height: 64, decoration: const BoxDecoration(color: Color(0xFF232426), shape: BoxShape.circle), child: Icon(i, size: 28, color: cor)),
-                const SizedBox(height: 8),
-                Text(t, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500, decoration: TextDecoration.none)),
-              ]),
-            );
-        return Material(
-          type: MaterialType.transparency,
-          child: SafeArea(
-            child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                item(Ic.controle, Cores.acento, 'Jogo', () => novoJogo(context)),
-                item(Ic.pacote, Cores.ambar, 'Assets', () => menuPublicar(context)),
-                item(Ic.lapis, Cores.coral, 'Post', () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoPostTela()))),
-              ]),
-              const SizedBox(height: 36),
-              Toque(aoTocar: () => Navigator.pop(ctx), child: Container(width: 46, height: 38, decoration: BoxDecoration(color: Cores.coral, borderRadius: BorderRadius.circular(10)), child: const Icon(Ic.fechar, color: Colors.white, size: 22))),
-              const SizedBox(height: 24),
-            ]),
-          ),
-        );
-      },
-    );
+  Widget? _acao() {
+    switch (_aba) {
+      case 1:
+        return _Acao(chave: 'loja', icone: Ic.subir, texto: 'Publicar', aoTocar: () => menuPublicar(context));
+      case 2:
+        return _Acao(chave: 'post', icone: Ic.lapis, texto: 'Postar', aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NovoPostTela())));
+    }
+    return null;
   }
 
-  Widget _botao(int i) => Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _tocar(i),
-          child: Center(child: AnimatedScale(scale: _aba == i ? 1.06 : 1, duration: const Duration(milliseconds: 160), child: Icon(_aba == i ? _icones2[i] : _icones[i], color: _aba == i ? Cores.texto : Cores.texto2, size: 25))),
-        ),
-      );
+  static const _nomes = <String>['Início', 'Loja', 'Comunidade', 'Perfil'];
 
   @override
   Widget build(BuildContext context) => Scaffold(
         body: SafeArea(
           child: FadeTransition(opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut), child: IndexedStack(index: _aba, children: const [JogosAba(), AssetsAba(), PostsAba(), PerfilAba()])),
         ),
+        floatingActionButton: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (c, a) => FadeTransition(opacity: a, child: c),
+          child: _acao() ?? const SizedBox.shrink(key: ValueKey('nenhuma')),
+        ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(color: Cores.fundo, border: Border(top: BorderSide(color: Cores.divisor))),
           child: SafeArea(
             top: false,
             child: SizedBox(
-              height: 54,
+              height: 56,
               child: Row(children: [
-                _botao(0),
-                _botao(1),
-                Expanded(
-                  child: Center(
-                    child: Toque(aoTocar: _criar, child: Container(width: 48, height: 34, decoration: BoxDecoration(color: Cores.acento, borderRadius: BorderRadius.circular(10)), child: const Icon(Ic.mais, color: Colors.white, size: 22))),
+                for (var i = 0; i < _icones.length; i++)
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _tocar(i),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(_aba == i ? _icones2[i] : _icones[i], color: _aba == i ? Cores.texto : Cores.texto2, size: 24),
+                        const SizedBox(height: 2),
+                        Text(_nomes[i], style: TextStyle(fontSize: 11, fontWeight: _aba == i ? FontWeight.w600 : FontWeight.w400, color: _aba == i ? Cores.texto : Cores.texto2)),
+                      ]),
+                    ),
                   ),
-                ),
-                _botao(2),
-                _botao(3),
               ]),
             ),
           ),
@@ -107,3 +79,25 @@ class _CascaState extends State<Casca> with SingleTickerProviderStateMixin {
       );
 }
 
+class _Acao extends StatelessWidget {
+  const _Acao({required this.chave, required this.icone, required this.texto, required this.aoTocar});
+  final String chave;
+  final IconData icone;
+  final String texto;
+  final VoidCallback aoTocar;
+
+  @override
+  Widget build(BuildContext context) => FloatingActionButton.extended(
+        key: ValueKey<String>(chave),
+        onPressed: aoTocar,
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
+        backgroundColor: Cores.acento,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        icon: Icon(icone, size: 22),
+        label: Text(texto, style: const TextStyle(fontWeight: FontWeight.w600)),
+      );
+}
