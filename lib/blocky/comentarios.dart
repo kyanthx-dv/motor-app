@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'dados.dart';
 import 'icones.dart';
+import 'nuvem.dart';
+import 'repo.dart';
 import 'widgets.dart';
 
 /// Comentario com respostas aninhadas.
 class Cm {
-  Cm(this.autor, this.texto);
+  Cm(this.autor, this.texto, [this.id]);
+  String? id; // id no banco (vazio nos exemplos locais)
   final String autor;
   final String texto;
   final List<Cm> resp = [];
@@ -14,8 +17,52 @@ class Cm {
 
 /// Estado dos comentarios de uma pagina (lista, alvo da resposta, campo).
 class ControleComentarios extends ChangeNotifier {
-  ControleComentarios(List<Comentario> base) : itens = [for (final c in base) Cm(c.autor, c.texto)];
+  ControleComentarios(List<Comentario> base)
+      : itens = [for (final c in base) Cm(c.autor, c.texto)],
+        _tipo = null,
+        _alvo = null;
+
+  /// Comentarios de verdade (Supabase) de uma publicacao.
+  ControleComentarios.nuvem(String tipo, String id)
+      : itens = [],
+        _tipo = tipo,
+        _alvo = id {
+    carregando = true;
+    _carregar();
+  }
+
   final List<Cm> itens;
+  final String? _tipo;
+  final String? _alvo;
+  bool carregando = false;
+  void Function(String)? aoErro;
+  bool _morto = false;
+
+  Future<void> _carregar() async {
+    try {
+      final l = await Nuvem.i.comentarios(_tipo!, _alvo!);
+      final porId = <String, Cm>{};
+      final raizDe = <String, Cm>{};
+      for (final r in l) {
+        final nome = ((r['perfis'] as Map?)?['usuario'] as String?) ?? '?';
+        final cm = Cm(nome, r['texto'] as String, r['id'] as String);
+        porId[cm.id!] = cm;
+        final pai = r['pai'] as String?;
+        if (pai == null || !raizDe.containsKey(pai) && !porId.containsKey(pai)) {
+          itens.add(cm);
+          raizDe[cm.id!] = cm;
+        } else {
+          final raiz = raizDe[pai] ?? porId[pai]!;
+          raiz.resp.add(cm); // um nivel so
+          raizDe[cm.id!] = raiz;
+        }
+      }
+    } on ErroNuvem catch (e) {
+      aoErro?.call(e.msg);
+    }
+    carregando = false;
+    if (!_morto) notifyListeners();
+  }
   final foco = FocusNode();
   final campo = TextEditingController();
   Cm? alvo;
@@ -29,9 +76,31 @@ class ControleComentarios extends ChangeNotifier {
     if (c != null) foco.requestFocus();
   }
 
-  void enviar() {
+  Future<void> enviar() async {
     final t = campo.text.trim();
     if (t.isEmpty) return;
+    if (_tipo != null) {
+      if (!Nuvem.i.logado) {
+        aoErro?.call('Entre na sua conta para comentar.');
+        return;
+      }
+      final a = alvo;
+      final raiz = a == null ? null : itens.firstWhere((m) => m == a || m.resp.contains(a));
+      final texto = a != null && a != raiz ? '@${a.autor} $t' : t;
+      campo.clear();
+      alvo = null;
+      notifyListeners();
+      try {
+        final id = await Nuvem.i.comentar(_tipo!, _alvo!, texto, raiz?.id);
+        (raiz?.resp ?? itens).add(Cm(Nuvem.i.usuario ?? 'você', texto, id));
+        RepoPosts.i.comentou(_alvo!);
+      } on ErroNuvem catch (e) {
+        campo.text = t;
+        aoErro?.call(e.msg);
+      }
+      if (!_morto) notifyListeners();
+      return;
+    }
     if (alvo == null) {
       itens.add(Cm('você', t));
     } else {
@@ -46,6 +115,7 @@ class ControleComentarios extends ChangeNotifier {
 
   @override
   void dispose() {
+    _morto = true;
     foco.dispose();
     campo.dispose();
     super.dispose();
@@ -85,7 +155,7 @@ class ListaComentarios extends StatelessWidget {
           curve: Curves.easeOutCubic,
           alignment: Alignment.topCenter,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (c.itens.isEmpty) const Padding(padding: EdgeInsets.all(28), child: Center(child: Text('Vazio', style: TextStyle(color: Cores.texto2)))),
+            if (c.carregando) const Padding(padding: EdgeInsets.all(28), child: Center(child: CircularProgressIndicator(strokeWidth: 2.5))) else if (c.itens.isEmpty) const Padding(padding: EdgeInsets.all(28), child: Center(child: Text('Seja o primeiro a comentar.', style: TextStyle(color: Cores.texto2)))),
             for (final m in c.itens) _linha(m, 0),
           ]),
         ),
@@ -126,8 +196,9 @@ class BarraComentario extends StatelessWidget {
 }
 
 /// Janela de comentarios (usada nos cartoes e no video).
-void abrirComentarios(BuildContext context, List<Comentario> lista) {
-  final c = ControleComentarios(lista);
+void abrirComentarios(BuildContext context, List<Comentario> lista, {String? tipo, String? id}) {
+  final c = tipo != null && id != null ? ControleComentarios.nuvem(tipo, id) : ControleComentarios(lista);
+  c.aoErro = (m) => aviso(context, m);
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'icones.dart';
 import 'comentarios.dart';
+import 'repo.dart';
 import 'dados.dart';
 import 'perfil_publico.dart';
 import 'widgets.dart';
@@ -10,16 +11,24 @@ const _ouro = Color(0xFFFBBF24);
 
 /// Pagina com conteudo no topo + aba de comentarios + campo fixo embaixo (base de Post e Asset).
 class _Base extends StatefulWidget {
-  const _Base({required this.topo, required this.comentarios});
+  const _Base({required this.topo, required this.comentarios, this.tipo, this.alvoId});
   final List<Widget> topo;
   final List<Comentario> comentarios;
+  final String? tipo; // com tipo + alvoId, os comentarios sao reais (Supabase)
+  final String? alvoId;
 
   @override
   State<_Base> createState() => _BaseState();
 }
 
 class _BaseState extends State<_Base> {
-  late final ControleComentarios _cc = ControleComentarios(widget.comentarios);
+  late final ControleComentarios _cc = widget.tipo != null && widget.alvoId != null ? ControleComentarios.nuvem(widget.tipo!, widget.alvoId!) : ControleComentarios(widget.comentarios);
+
+  @override
+  void initState() {
+    super.initState();
+    _cc.aoErro = (m) => aviso(context, m);
+  }
 
   @override
   void dispose() {
@@ -80,6 +89,8 @@ class PostPagina extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _Base(
         comentarios: post.comentarios,
+        tipo: post.autorId.isEmpty ? null : 'post',
+        alvoId: post.autorId.isEmpty ? null : post.id,
         topo: [
           SafeArea(bottom: false, child: Row(children: [IconButton(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Ic.maisHoriz), onPressed: () => emBreve(context, 'Opções'))])),
           _autor(post.autor, '11 nov'),
@@ -95,8 +106,29 @@ class PostPagina extends StatelessWidget {
               Text(post.descricao, style: const TextStyle(fontSize: 16)),
             ]),
           ),
-          _Acoes(curtidas: post.curtidas, favoritos: post.curtidas ~/ 3),
+          post.autorId.isEmpty ? _Acoes(curtidas: post.curtidas, favoritos: post.curtidas ~/ 3) : AcoesPost(post),
         ],
+      );
+}
+
+/// Curtir/favoritar um post de verdade (Supabase), com contagem que atualiza na hora.
+class AcoesPost extends StatelessWidget {
+  const AcoesPost(this.post, {super.key});
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: RepoPosts.i,
+        builder: (_, __) {
+          final r = RepoPosts.i;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Wrap(alignment: WrapAlignment.center, spacing: 10, runSpacing: 8, children: [
+              PilulaAcao(icone: Ic.coracao, iconeAtivo: Ic.coracaoCheio, rotulo: abreviar(r.curtidas(post)), ativo: r.curtiu(post), cor: Colors.redAccent, aoTocar: () => tentar(context, () => r.alternar(post, 'curtida'))),
+              PilulaAcao(icone: Ic.estrela, iconeAtivo: Ic.estrelaCheia, rotulo: abreviar(r.favoritos(post)), ativo: r.favoritou(post), cor: _ouro, aoTocar: () => tentar(context, () => r.alternar(post, 'favorito'))),
+            ]),
+          );
+        },
       );
 }
 

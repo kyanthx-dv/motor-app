@@ -6,6 +6,7 @@ import 'avisos.dart';
 import 'editar_perfil.dart';
 import 'nuvem.dart';
 import 'comentarios.dart';
+import 'repo.dart';
 import 'dados.dart';
 import 'video.dart';
 import 'editor_web.dart';
@@ -232,35 +233,69 @@ class _Grade extends StatelessWidget {
 
 // ---------------------------------------------------------------- Comunidade (Posts)
 
-class PostsAba extends StatelessWidget {
+class PostsAba extends StatefulWidget {
   const PostsAba({super.key});
 
   @override
+  State<PostsAba> createState() => _PostsAbaState();
+}
+
+class _PostsAbaState extends State<PostsAba> {
+  @override
+  void initState() {
+    super.initState();
+    RepoPosts.i.carregar();
+  }
+
+  @override
   Widget build(BuildContext context) => DefaultTabController(
-        length: 4,
+        length: 3,
         child: Column(children: [
           _Topo('Comunidade', [_lupa(context), IconButton(icon: const Icon(Ic.trofeu), onPressed: () => emBreve(context, 'Ranking de criadores'))]),
-          BarraAbas(const ['Seguindo', 'Para você', 'Vídeo', 'Gamedev'], rolavel: true),
+          BarraAbas(const ['Para você', 'Seguindo', 'Vídeo'], rolavel: true),
           Expanded(
-            child: TabBarView(children: [
-              _Feed(postsExemplo.where((p) => p.autor != 'zed').toList()),
-              _Feed(postsExemplo),
-              _Feed(postsExemplo.where((p) => p.video).toList()),
-              _Feed(postsExemplo.reversed.toList()),
-            ]),
+            child: ListenableBuilder(
+              listenable: RepoPosts.i,
+              builder: (_, __) {
+                final r = RepoPosts.i;
+                return TabBarView(children: [
+                  _Feed(r.posts, vazio: 'Ainda não há posts. Seja o primeiro: toque em Postar.'),
+                  _Feed([for (final p in r.posts) if (r.seguindoIds.contains(p.autorId)) p], vazio: Nuvem.i.logado ? 'Siga pessoas para ver os posts delas aqui.' : 'Entre na sua conta para ver quem você segue.'),
+                  _Feed([for (final p in r.posts) if (p.video) p], vazio: 'Vídeos chegam quando o envio de vídeo estiver pronto.'),
+                ]);
+              },
+            ),
           ),
         ]),
       );
 }
 
 class _Feed extends StatelessWidget {
-  const _Feed(this.posts);
+  const _Feed(this.posts, {required this.vazio});
   final List<Post> posts;
+  final String vazio;
 
   @override
-  Widget build(BuildContext context) => posts.isEmpty
-      ? const Center(child: Text('Nada por aqui ainda.', style: TextStyle(color: Cores.texto2)))
-      : ListView(padding: const EdgeInsets.all(12), children: [for (var i = 0; i < posts.length; i++) Aparece(indice: i, child: CartaoPost(post: posts[i]))]);
+  Widget build(BuildContext context) {
+    final r = RepoPosts.i;
+    if (r.carregando && r.posts.isEmpty) return const Center(child: CircularProgressIndicator(strokeWidth: 2.5));
+    return RefreshIndicator(
+      onRefresh: r.carregar,
+      child: posts.isEmpty
+          ? ListView(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(32, 90, 32, 0),
+                child: Column(children: [
+                  Icon(r.erro != null ? Ic.alerta : Ic.comunidade, size: 44, color: Cores.texto2),
+                  const SizedBox(height: 12),
+                  Text(r.erro ?? vazio, textAlign: TextAlign.center, style: const TextStyle(color: Cores.texto2)),
+                  if (r.erro != null) TextButton(onPressed: r.carregar, child: const Text('Tentar de novo')),
+                ]),
+              ),
+            ])
+          : ListView(padding: const EdgeInsets.all(12), children: [for (var i = 0; i < posts.length; i++) Aparece(indice: i, child: CartaoPost(post: posts[i]))]),
+    );
+  }
 }
 
 class CartaoPost extends StatefulWidget {
@@ -278,6 +313,14 @@ class _CartaoPostState extends State<CartaoPost> {
   @override
   Widget build(BuildContext context) {
     final p = widget.post;
+    final real = p.autorId.isNotEmpty;
+    return ListenableBuilder(listenable: RepoPosts.i, builder: (context, _) => _cartao(context, p, real));
+  }
+
+  Widget _cartao(BuildContext context, Post p, bool real) {
+    final r = RepoPosts.i;
+    final curtiu = real ? r.curtiu(p) : _curtiu;
+    final fav = real ? r.favoritou(p) : _fav;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
@@ -297,13 +340,13 @@ class _CartaoPostState extends State<CartaoPost> {
         AspectRatio(aspectRatio: 21 / 9, child: Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, video: p.video, tamanhoIcone: 40)),
         const SizedBox(height: 6),
         Row(children: [
-          IconButton(icon: IconeAnim(ligado: _curtiu, ligadoIcone: Ic.coracaoCheio, desligadoIcone: Ic.coracao, cor: Colors.redAccent), onPressed: () => setState(() => _curtiu = !_curtiu)),
-          Text(abreviar(p.curtidas + (_curtiu ? 1 : 0))),
+          IconButton(icon: IconeAnim(ligado: curtiu, ligadoIcone: Ic.coracaoCheio, desligadoIcone: Ic.coracao, cor: Colors.redAccent), onPressed: () => real ? tentar(context, () => r.alternar(p, 'curtida')) : setState(() => _curtiu = !_curtiu)),
+          TextoRolante(abreviar(real ? r.curtidas(p) : p.curtidas + (_curtiu ? 1 : 0))),
           const Spacer(),
-          IconButton(icon: IconeAnim(ligado: _fav, ligadoIcone: Ic.estrelaCheia, desligadoIcone: Ic.estrela, cor: _ouro), onPressed: () => setState(() => _fav = !_fav)),
+          IconButton(icon: IconeAnim(ligado: fav, ligadoIcone: Ic.estrelaCheia, desligadoIcone: Ic.estrela, cor: _ouro), onPressed: () => real ? tentar(context, () => r.alternar(p, 'favorito')) : setState(() => _fav = !_fav)),
           const Spacer(),
-          IconButton(icon: const Icon(Ic.balao), onPressed: () => abrirComentarios(context, p.comentarios)),
-          Text('${p.comentarios.length}'),
+          IconButton(icon: const Icon(Ic.balao), onPressed: () => real ? abrirComentarios(context, const [], tipo: 'post', id: p.id) : abrirComentarios(context, p.comentarios)),
+          Text('${real ? r.comentarios(p) : p.numComentarios}'),
         ]),
       ]),
       ),

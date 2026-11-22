@@ -199,6 +199,62 @@ class Nuvem extends ChangeNotifier {
     await _req('PATCH', '/rest/v1/perfis?id=eq.$usuarioId', corpo: {'nome': n.isEmpty ? null : n, 'bio': b.isEmpty ? null : b}, extra: {'Prefer': 'return=minimal'});
   }
 
+  // ------------------------------------------------------------ publicacoes
+  Future<List<Map<String, dynamic>>> feed(String tipo, {int limite = 40}) async {
+    final l = await _req('GET', '/rest/v1/publicacoes_feed?tipo=eq.$tipo&order=criado_em.desc&limit=$limite', auth: logado) as List;
+    return [for (final e in l) Map<String, dynamic>.from(e as Map)];
+  }
+
+  Future<void> publicar({required String tipo, required String titulo, required String descricao, bool video = false, Map<String, dynamic> extras = const {}}) async {
+    if (!logado) throw ErroNuvem('Entre na sua conta para publicar.');
+    final t = titulo.trim();
+    if (t.isEmpty || t.length > 80) throw ErroNuvem('Título: 1 a 80 caracteres.');
+    if (descricao.length > 2000) throw ErroNuvem('Descrição: no máximo 2000 caracteres.');
+    await _req('POST', '/rest/v1/publicacoes', corpo: {'autor': usuarioId, 'tipo': tipo, 'titulo': t, 'descricao': descricao.trim(), 'video': video, 'extras': extras}, extra: {'Prefer': 'return=minimal'});
+  }
+
+  // ------------------------------------------------------------ curtir / favoritar
+  /// Ids (entre [ids]) que EU curtiu / favoritei: {'curtida': {...}, 'favorito': {...}}
+  Future<Map<String, Set<String>>> minhasMarcas(String tipo, List<String> ids) async {
+    final r = {'curtida': <String>{}, 'favorito': <String>{}};
+    if (!logado || ids.isEmpty) return r;
+    final l = await _req('GET', '/rest/v1/curtidas?usuario=eq.$usuarioId&alvo_tipo=eq.$tipo&alvo_id=in.(${ids.join(',')})&select=alvo_id,tipo') as List;
+    for (final e in l) {
+      (r[(e as Map)['tipo'] as String] ??= <String>{}).add(e['alvo_id'] as String);
+    }
+    return r;
+  }
+
+  Future<void> marcar(String tipo, String id, String marca, bool ligar) async {
+    if (!logado) throw ErroNuvem('Entre na sua conta para curtir e favoritar.');
+    if (ligar) {
+      await _req('POST', '/rest/v1/curtidas', corpo: {'usuario': usuarioId, 'alvo_tipo': tipo, 'alvo_id': id, 'tipo': marca}, extra: {'Prefer': 'resolution=ignore-duplicates,return=minimal'});
+    } else {
+      await _req('DELETE', '/rest/v1/curtidas?usuario=eq.$usuarioId&alvo_tipo=eq.$tipo&alvo_id=eq.$id&tipo=eq.$marca', extra: {'Prefer': 'return=minimal'});
+    }
+  }
+
+  // ------------------------------------------------------------ comentarios
+  Future<List<Map<String, dynamic>>> comentarios(String tipo, String id) async {
+    final l = await _req('GET', '/rest/v1/comentarios?alvo_tipo=eq.$tipo&alvo_id=eq.$id&select=id,pai,texto,criado_em,perfis(usuario)&order=criado_em.asc&limit=300', auth: logado) as List;
+    return [for (final e in l) Map<String, dynamic>.from(e as Map)];
+  }
+
+  Future<String> comentar(String tipo, String id, String texto, String? pai) async {
+    if (!logado) throw ErroNuvem('Entre na sua conta para comentar.');
+    final t = texto.trim();
+    if (t.isEmpty || t.length > 500) throw ErroNuvem('Comentário: 1 a 500 caracteres.');
+    final r = await _req('POST', '/rest/v1/comentarios', corpo: {'autor': usuarioId, 'alvo_tipo': tipo, 'alvo_id': id, 'pai': pai, 'texto': t}, extra: {'Prefer': 'return=representation'}) as List;
+    return (r.first as Map)['id'] as String;
+  }
+
+  // ------------------------------------------------------------ seguir
+  Future<Set<String>> quemSigo() async {
+    if (!logado) return {};
+    final l = await _req('GET', '/rest/v1/seguidores?seguidor=eq.$usuarioId&select=seguido') as List;
+    return {for (final e in l) (e as Map)['seguido'] as String};
+  }
+
   Future<void> sair() async {
     try {
       if (logado) await _req('POST', '/auth/v1/logout');

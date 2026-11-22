@@ -64,8 +64,13 @@ class Post {
     this.video = false,
     this.curtidas = 0,
     this.comentarios = const [],
+    this.autorId = '',
+    this.totalComentarios = -1,
   });
   final String id;
+  final String autorId; // uuid do autor (vazio nos exemplos)
+  final int totalComentarios; // -1 = usa comentarios.length
+  int get numComentarios => totalComentarios >= 0 ? totalComentarios : comentarios.length;
   final String titulo;
   final String descricao;
   final String autor;
