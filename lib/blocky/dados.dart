@@ -66,7 +66,9 @@ class Post {
     this.comentarios = const [],
     this.autorId = '',
     this.totalComentarios = -1,
+    this.midia,
   });
+  final String? midia; // url da foto/video enviado (null = capa colorida)
   final String id;
   final String autorId; // uuid do autor (vazio nos exemplos)
   final int totalComentarios; // -1 = usa comentarios.length

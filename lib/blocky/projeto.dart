@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'icones.dart';
+import 'jogar_tela.dart';
 import 'package:flutter/services.dart';
 
 import 'cena_config.dart';
@@ -218,7 +219,7 @@ class _ProjetoTelaState extends State<ProjetoTela> {
                 IconButton(onPressed: () => emBreve(context, 'Publicar'), icon: const Icon(Ic.subir)),
                 IconButton(onPressed: _configJogo, icon: const Icon(Ic.engrenagem)),
                 Toque(
-                  aoTocar: () => emBreve(context, 'Executar (engine)'),
+                  aoTocar: () => executar(context, p),
                   child: Container(width: 42, height: 42, decoration: const BoxDecoration(color: azulEditor, shape: BoxShape.circle), child: const Icon(Ic.play, size: 20, color: Colors.white)),
                 ),
               ]),

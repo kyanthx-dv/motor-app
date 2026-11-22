@@ -9,7 +9,6 @@ import 'comentarios.dart';
 import 'repo.dart';
 import 'dados.dart';
 import 'video.dart';
-import 'editor_web.dart';
 import 'entrada.dart';
 import 'detalhes.dart';
 import 'extras.dart';
@@ -54,7 +53,10 @@ class JogosAba extends StatelessWidget {
           _Topo('Início', [
             ActionChip(avatar: const Icon(Ic.moeda, color: _ouro, size: 20), label: const Text('120'), onPressed: () => _ir(context, const CarteiraTela())),
             _lupa(context),
-            IconButton(tooltip: 'Notificações', icon: const Badge(label: Text('3'), child: Icon(Ic.sino)), onPressed: () => _ir(context, const NotificacoesTela())),
+            IconButton(tooltip: 'Notificações', icon: ValueListenableBuilder<int>(valueListenable: Nuvem.i.naoLidas, builder: (_, n, __) => Badge(isLabelVisible: n > 0, label: Text(n > 99 ? '99+' : '$n'), child: const Icon(Ic.sino))), onPressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NotificacoesTela()));
+              Nuvem.i.atualizarNaoLidas();
+            }),
             IconButton(tooltip: 'Mensagens', icon: const Icon(Ic.balao), onPressed: () => _ir(context, const ChatTela())),
           ]),
           BarraAbas(const ['Em alta', 'Descobrir', 'Novos', 'Ranking', 'Seguindo'], rolavel: true),
@@ -337,7 +339,7 @@ class _CartaoPostState extends State<CartaoPost> {
         const SizedBox(height: 3),
         Text(p.descricao, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Cores.texto2)),
         const SizedBox(height: 10),
-        AspectRatio(aspectRatio: 21 / 9, child: Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, video: p.video, tamanhoIcone: 40)),
+        AspectRatio(aspectRatio: 21 / 9, child: Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, video: p.video, midia: p.midia, tamanhoIcone: 40)),
         const SizedBox(height: 6),
         Row(children: [
           IconButton(icon: IconeAnim(ligado: curtiu, ligadoIcone: Ic.coracaoCheio, desligadoIcone: Ic.coracao, cor: Colors.redAccent), onPressed: () => real ? tentar(context, () => r.alternar(p, 'curtida')) : setState(() => _curtiu = !_curtiu)),
@@ -376,8 +378,6 @@ class PerfilAba extends StatelessWidget {
                 stats: const [('3', 'Jogos'), ('1,2k', 'Seguidores'), ('48', 'Seguindo')],
                 botoes: Row(children: [
                   Expanded(child: OutlinedButton(onPressed: () => Nuvem.i.logado ? _ir(context, const EditarPerfilTela()) : aviso(context, 'Entre na sua conta para editar o perfil.'), child: const Text('Editar perfil'))),
-                  const SizedBox(width: 10),
-                  Expanded(child: FilledButton(onPressed: () => _ir(context, const EditorWebTela()), child: const Text('Abrir editor'))),
                 ]),
               ),
             ]),

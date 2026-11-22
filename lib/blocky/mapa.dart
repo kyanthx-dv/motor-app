@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'icones.dart';
+import 'jogar_tela.dart';
 import 'cena_config.dart';
 import 'projetos.dart';
 import 'widgets.dart';
@@ -436,7 +437,7 @@ class _CenaTelaState extends State<CenaTela> {
                         _barra(Ic.refazer, _refazer.isEmpty ? null : _redo),
                         const SizedBox(width: 6),
                         Toque(
-                          aoTocar: () => emBreve(context, 'Executar (engine)'),
+                          aoTocar: () => executar(context, widget.projeto, daCena: widget.cena),
                           child: Container(width: 42, height: 42, decoration: const BoxDecoration(color: azulEditor, shape: BoxShape.circle), child: const Icon(Ic.play, size: 20, color: Colors.white)),
                         ),
                       ]),
