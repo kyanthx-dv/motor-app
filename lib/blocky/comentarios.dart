@@ -91,9 +91,9 @@ class ControleComentarios extends ChangeNotifier {
       alvo = null;
       notifyListeners();
       try {
-        final id = await Nuvem.i.comentar(_tipo!, _alvo!, texto, raiz?.id);
+        final id = await Nuvem.i.comentar(_tipo, _alvo!, texto, raiz?.id);
         (raiz?.resp ?? itens).add(Cm(Nuvem.i.usuario ?? 'você', texto, id));
-        RepoPosts.i.comentou(_alvo!);
+        RepoPosts.i.comentou(_alvo);
       } on ErroNuvem catch (e) {
         campo.text = t;
         aoErro?.call(e.msg);
