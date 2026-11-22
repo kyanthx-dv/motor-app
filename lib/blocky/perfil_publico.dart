@@ -12,14 +12,9 @@ import 'widgets.dart';
 
 /// Cor estavel por usuario (para o avatar enquanto nao ha foto).
 List<Color> _coresDe(String u) {
-  const pares = [
-    [Color(0xFF8B5CF6), Color(0xFF38BDF8)],
-    [Color(0xFFF97316), Color(0xFFEC4899)],
-    [Color(0xFF22C55E), Color(0xFF0EA5E9)],
-    [Color(0xFFEAB308), Color(0xFFF97316)],
-    [Color(0xFF06B6D4), Color(0xFF6366F1)],
-  ];
-  return pares[u.codeUnits.fold<int>(0, (a, b) => a + b) % pares.length];
+  const solidos = [Color(0xFF1D9BF0), Color(0xFFF97316), Color(0xFF23A55A), Color(0xFFF23F43), Color(0xFFF59E0B), Color(0xFF3A3D42)];
+  final c = solidos[u.codeUnits.fold<int>(0, (a, b) => a + b) % solidos.length];
+  return [c, c];
 }
 
 Pessoa pessoaDe(String usuario) => pessoasExemplo.firstWhere((p) => p.usuario == usuario, orElse: () => Pessoa(usuario, usuario, 0));
@@ -78,7 +73,7 @@ class AvatarUsuario extends StatelessWidget {
   const AvatarUsuario(this.usuario, {super.key, this.raio = 18, this.anel = false});
   final String usuario;
   final double raio;
-  final bool anel; // moldura em degrade (perfis)
+  final bool anel; // moldura azul (perfis)
 
   @override
   Widget build(BuildContext context) {
@@ -86,14 +81,14 @@ class AvatarUsuario extends StatelessWidget {
     if (anel) {
       return Container(
         padding: const EdgeInsets.all(3),
-        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: SweepGradient(colors: [Color(0xFF8B5CF6), Color(0xFF38BDF8), Color(0xFFF472B6), Color(0xFF8B5CF6)])),
+        decoration: const BoxDecoration(shape: BoxShape.circle, color: Cores.acento),
         child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(color: Cores.fundo, shape: BoxShape.circle), child: AvatarUsuario(usuario, raio: raio)),
       );
     }
     return Container(
       width: raio * 2,
       height: raio * 2,
-      decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: c, begin: Alignment.topLeft, end: Alignment.bottomRight)),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: c.first),
       child: Center(child: Text(usuario[0].toUpperCase(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: raio * 0.95))),
     );
   }
@@ -196,7 +191,7 @@ class CabecalhoPerfil extends StatelessWidget {
         Container(
           height: 130,
           width: double.infinity,
-          decoration: BoxDecoration(gradient: LinearGradient(colors: [c[0].withAlpha(170), c[1].withAlpha(110)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+          decoration: BoxDecoration(color: c.first.withAlpha(150)),
           child: SafeArea(
             bottom: false,
             child: Padding(padding: const EdgeInsets.all(8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [if (esquerda != null) esquerda!, const Spacer(), if (direita != null) direita!])),

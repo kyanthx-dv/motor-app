@@ -144,7 +144,7 @@ class ItemPagina extends StatelessWidget {
       comentarios: const [Comentario('luna', 'Ficou ótimo!'), Comentario('zed', 'Posso usar em jogo comercial?')],
       topo: [
         Container(
-          decoration: BoxDecoration(gradient: LinearGradient(colors: [i.cor1.withAlpha(180), Cores.fundo], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+          color: Color.alphaBlend(i.cor1.withAlpha(60), Cores.cartao),
           child: SafeArea(
             bottom: false,
             child: Column(children: [

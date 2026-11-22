@@ -9,24 +9,26 @@ import 'dados.dart';
 /// true = tema preto, false = tema branco. Trocar reconstroi o app (ver main.dart).
 final ValueNotifier<bool> temaEscuro = ValueNotifier<bool>(true);
 
+/// Estilo: escuro, chapado (flat) e utilitario. Sem gradiente, sem sombra, sem brilho. Cores solidas.
 class Cores {
-  static Color get fundo => temaEscuro.value ? const Color(0xFF111215) : const Color(0xFFF3F0EA);
-  static Color get cartao => temaEscuro.value ? const Color(0xFF1A1C20) : const Color(0xFFFFFFFF);
-  static Color get cartao2 => temaEscuro.value ? const Color(0xFF24262C) : const Color(0xFFE8E4DB);
-  static const acento = Color(0xFF6C63F2);
-  static const acento2 = Color(0xFF38BDF8);
-  static const verde = Color(0xFF22C55E);
-  static const texto2 = Color(0xFF8A93A3); // legivel nos dois temas
+  static Color get fundo => temaEscuro.value ? const Color(0xFF141414) : const Color(0xFFFFFFFF);
+  static Color get cartao => temaEscuro.value ? const Color(0xFF232426) : const Color(0xFFF1F2F4);
+  static Color get cartao2 => temaEscuro.value ? const Color(0xFF2B2D30) : const Color(0xFFE4E6E9);
+  static Color get divisor => temaEscuro.value ? const Color(0xFF262626) : const Color(0xFFE3E4E6);
+  static Color get texto => temaEscuro.value ? const Color(0xFFFFFFFF) : const Color(0xFF111214);
+  static const acento = Color(0xFF1D9BF0); // azul: aba ativa, +, Seguir, badge New
+  static const acento2 = Color(0xFF1D9BF0);
+  static const ambar = Color(0xFFF59E0B); // moedas, saldo
+  static const laranja = Color(0xFFF97316); // acoes de moeda, badge Hot
+  static const verde = Color(0xFF23A55A); // Publicado
+  static const coral = Color(0xFFF23F43); // Em desenvolvimento, fechar
+  static const texto2 = Color(0xFF8E9297); // legivel nos dois temas
 }
 
-/// Degrade da marca (violeta -> azul).
-/// Marca: indigo solido (degrade quase imperceptivel, so para dar corpo ao botao).
-const LinearGradient degradeMarca = LinearGradient(colors: [Color(0xFF6F66F5), Color(0xFF5E56E6)], begin: Alignment.topCenter, end: Alignment.bottomCenter);
-
 ThemeData temaBlocky(bool escuro) {
-  final forma = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+  final forma = RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
   return ThemeData(
-    textTheme: GoogleFonts.nunitoTextTheme(ThemeData(brightness: escuro ? Brightness.dark : Brightness.light).textTheme),
+    textTheme: GoogleFonts.interTextTheme(ThemeData(brightness: escuro ? Brightness.dark : Brightness.light).textTheme),
     useMaterial3: true,
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.android: TransicaoSuave(),
@@ -41,72 +43,74 @@ ThemeData temaBlocky(bool escuro) {
       surfaceContainerHigh: Cores.cartao2,
       surfaceContainerHighest: Cores.cartao2,
     ),
-    appBarTheme: AppBarTheme(backgroundColor: Cores.fundo, elevation: 0, scrolledUnderElevation: 0),
+    appBarTheme: AppBarTheme(backgroundColor: Cores.fundo, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent),
+    dividerTheme: DividerThemeData(color: Cores.divisor, thickness: 1, space: 1),
+    splashFactory: NoSplash.splashFactory,
     // botoes sem contorno: preenchido (acao principal) e "suave" (secundario)
     filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(shape: forma, elevation: 0, minimumSize: const Size(64, 46), textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(shape: forma, side: BorderSide.none, backgroundColor: Cores.cartao2, foregroundColor: escuro ? Colors.white : Colors.black87, minimumSize: const Size(64, 46), textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+      style: OutlinedButton.styleFrom(shape: forma, side: BorderSide.none, backgroundColor: Cores.cartao2, foregroundColor: Cores.texto, minimumSize: const Size(64, 46), textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
     ),
     textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(shape: forma, textStyle: const TextStyle(fontWeight: FontWeight.w700))),
-    segmentedButtonTheme: SegmentedButtonThemeData(style: SegmentedButton.styleFrom(side: BorderSide.none, backgroundColor: Cores.cartao2, selectedBackgroundColor: Cores.acento.withAlpha(70))),
+    segmentedButtonTheme: SegmentedButtonThemeData(style: SegmentedButton.styleFrom(side: BorderSide.none, backgroundColor: Cores.cartao2, selectedBackgroundColor: Cores.acento)),
     chipTheme: ChipThemeData(side: BorderSide.none, backgroundColor: Cores.cartao2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-    bottomSheetTheme: BottomSheetThemeData(backgroundColor: Cores.cartao, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28)))),
-    snackBarTheme: SnackBarThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), behavior: SnackBarBehavior.floating),
+    bottomSheetTheme: BottomSheetThemeData(backgroundColor: Cores.cartao, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))), surfaceTintColor: Colors.transparent),
+    snackBarTheme: SnackBarThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), backgroundColor: const Color(0xFF2B2D30), contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500), behavior: SnackBarBehavior.floating),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Cores.cartao,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
     ),
   );
 }
 
-/// Abas em "pilula" (indicador suave, sem linha).
+/// Abas: texto simples e uma linha azul curta (3px) so embaixo da aba ativa.
 class BarraAbas extends StatelessWidget implements PreferredSizeWidget {
   const BarraAbas(this.rotulos, {super.key, this.rolavel = false});
   final List<String> rotulos;
   final bool rolavel;
 
   @override
-  Size get preferredSize => const Size.fromHeight(48);
+  Size get preferredSize => const Size.fromHeight(46);
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        height: 48,
+  Widget build(BuildContext context) => Container(
+        height: 46,
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Cores.divisor))),
         child: TabBar(
           isScrollable: rolavel,
           tabAlignment: rolavel ? TabAlignment.start : null,
           dividerColor: Colors.transparent,
-          indicatorSize: TabBarIndicatorSize.tab,
-          indicatorPadding: const EdgeInsets.symmetric(vertical: 6),
-          indicator: BoxDecoration(color: Cores.acento.withAlpha(55), borderRadius: BorderRadius.circular(20)),
-          labelColor: temaEscuro.value ? Colors.white : Colors.black87,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicator: const UnderlineTabIndicator(borderSide: BorderSide(width: 3, color: Cores.acento), borderRadius: BorderRadius.all(Radius.circular(2))),
+          labelColor: Cores.texto,
           unselectedLabelColor: Cores.texto2,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          splashBorderRadius: BorderRadius.circular(20),
-          labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 14),
           tabs: [for (final r in rotulos) Tab(text: r)],
         ),
       );
 }
 
-/// Botao principal: degrade da marca, sem contorno.
+/// Botao principal: retangulo de cantos suaves, azul solido, sem borda nem sombra.
 class BotaoPrimario extends StatefulWidget {
-  const BotaoPrimario({super.key, required this.texto, required this.aoTocar, this.icone, this.altura = 50, this.cor, this.pulsa = false});
+  const BotaoPrimario({super.key, required this.texto, required this.aoTocar, this.icone, this.altura = 48, this.cor, this.pulsa = false});
   final String texto;
   final IconData? icone;
   final VoidCallback? aoTocar;
   final double altura;
-  final Gradient? cor;
-  final bool pulsa; // brilho suave pulsando (botoes importantes)
+  final Color? cor;
+  final bool pulsa; // "respira" de leve (escala), sem brilho
 
   @override
   State<BotaoPrimario> createState() => _BotaoPrimarioState();
 }
 
 class _BotaoPrimarioState extends State<BotaoPrimario> with SingleTickerProviderStateMixin {
-  late final AnimationController _p = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+  late final AnimationController _p = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
 
   @override
   void initState() {
@@ -121,37 +125,28 @@ class _BotaoPrimarioState extends State<BotaoPrimario> with SingleTickerProvider
   }
 
   @override
-  Widget build(BuildContext context) {
-    final g = widget.cor ?? degradeMarca;
-    final brilho = g.colors.first;
-    return Opacity(
-      opacity: widget.aoTocar == null ? 0.45 : 1,
-      child: Toque(
-        aoTocar: widget.aoTocar ?? () {},
-        child: AnimatedBuilder(
-          animation: _p,
-          builder: (_, child) => Container(
-            height: widget.altura,
-            padding: const EdgeInsets.symmetric(horizontal: 22),
-            decoration: BoxDecoration(
-              gradient: g,
-              borderRadius: BorderRadius.circular(widget.altura / 2.8),
-              boxShadow: [
-                widget.pulsa
-                    ? BoxShadow(color: brilho.withAlpha((40 + 90 * _p.value).round()), blurRadius: 8 + 14 * _p.value, spreadRadius: 1.5 * _p.value, offset: const Offset(0, 3))
-                    : BoxShadow(color: Colors.black.withAlpha(temaEscuro.value ? 70 : 28), blurRadius: 8, offset: const Offset(0, 3)),
-              ],
+  Widget build(BuildContext context) => Opacity(
+        opacity: widget.aoTocar == null ? 0.45 : 1,
+        child: Toque(
+          aoTocar: widget.aoTocar ?? () {},
+          child: AnimatedBuilder(
+            animation: _p,
+            builder: (_, child) => Transform.scale(
+              scale: 1 + 0.018 * Curves.easeInOut.transform(_p.value),
+              child: Container(
+                height: widget.altura,
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                decoration: BoxDecoration(color: widget.cor ?? Cores.acento, borderRadius: BorderRadius.circular(10)),
+                child: child,
+              ),
             ),
-            child: child,
+            child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+              if (widget.icone != null) ...[Icon(widget.icone, color: Colors.white, size: 21), const SizedBox(width: 8)],
+              Text(widget.texto, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+            ]),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-            if (widget.icone != null) ...[Icon(widget.icone, color: Colors.white, size: 22), const SizedBox(width: 8)],
-            Text(widget.texto, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-          ]),
         ),
-      ),
-    );
-  }
+      );
 }
 
 /// Botao de acao em pilula (curtir, favoritar, doar...). Ativo = tingido com a cor.
@@ -171,9 +166,9 @@ class PilulaAcao extends StatelessWidget {
       aoTocar: aoTocar,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 44,
+        height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: ativo ? c.withAlpha(45) : Cores.cartao2, borderRadius: BorderRadius.circular(22)),
+        decoration: BoxDecoration(color: ativo ? c.withAlpha(45) : Cores.cartao, borderRadius: BorderRadius.circular(10)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           IconeAnim(ligado: ativo, ligadoIcone: iconeAtivo ?? icone, desligadoIcone: icone, cor: c, tamanho: 22),
           const SizedBox(width: 8),
@@ -199,11 +194,10 @@ class Capa extends StatelessWidget {
     // tons dessaturados: a cor do jogo so "tinge" uma base neutra, para o texto ser o protagonista
     final base = Cores.cartao2;
     final a = Color.alphaBlend(cor1.withAlpha(temaEscuro.value ? 78 : 110), base);
-    final b = Color.alphaBlend(cor2.withAlpha(temaEscuro.value ? 46 : 70), base);
     return ClipRRect(
       borderRadius: BorderRadius.circular(raio),
       child: Container(
-        decoration: BoxDecoration(gradient: LinearGradient(colors: [a, b], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        color: a,
         child: Stack(children: [
           Center(child: Icon(icone, size: tamanhoIcone * 0.8, color: (temaEscuro.value ? Colors.white : Colors.black).withAlpha(95))),
           if (video)
@@ -343,8 +337,8 @@ class IconeAnim extends StatelessWidget {
       );
 }
 
-const Color mentaEditor = Color(0xFF7C5CFF); // = acento (nome historico)
-const Color azulEditor = Color(0xFF7C5CFF);
+const Color mentaEditor = Cores.acento; // = acento (nome historico)
+const Color azulEditor = Cores.acento;
 const Color rosaEditor = Color(0xFFFF7B93);
 
 /// Cabecalho de abas fixo (perfis).

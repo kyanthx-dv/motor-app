@@ -97,7 +97,7 @@ class _ReelState extends State<_Reel> with SingleTickerProviderStateMixin {
       onTap: _alternar,
       child: Stack(fit: StackFit.expand, children: [
         Capa(cor1: p.cor1, cor2: p.cor2, icone: p.icone, tamanhoIcone: 120, raio: 0),
-        const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0x00000000), Color(0xCC000000)], begin: Alignment.center, end: Alignment.bottomCenter))),
+        const ColoredBox(color: Color(0x66000000)),
         Center(child: AnimatedOpacity(opacity: _pausado ? 1 : 0, duration: const Duration(milliseconds: 150), child: Container(width: 72, height: 72, decoration: const BoxDecoration(color: Color(0x66000000), shape: BoxShape.circle), child: const Icon(Ic.play, size: 40, color: Colors.white)))),
         Positioned(
           right: 10,

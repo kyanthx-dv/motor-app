@@ -86,7 +86,7 @@ class _NovoPostTelaState extends State<NovoPostTela> {
                   duration: const Duration(milliseconds: 180),
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [capasCores[i].$1, capasCores[i].$2]), border: Border.all(color: _paleta == i ? Colors.white : Colors.transparent, width: 2.5)),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: capasCores[i].$1, border: Border.all(color: _paleta == i ? Colors.white : Colors.transparent, width: 2.5)),
                 ),
               ),
           ]),

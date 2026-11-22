@@ -293,8 +293,7 @@ class _ProjetoTelaState extends State<ProjetoTela> {
           decoration: BoxDecoration(
             color: Cores.cartao2,
             borderRadius: BorderRadius.circular(16),
-            border: c.inicial ? Border.all(color: Cores.acento, width: 1.6) : null,
-            boxShadow: erguido ? const [BoxShadow(color: Colors.black45, blurRadius: 16, offset: Offset(0, 8))] : null,
+            border: c.inicial ? Border.all(color: Cores.acento, width: 1.6) : (erguido ? Border.all(color: Cores.texto2, width: 1.2) : null),
           ),
           child: DefaultTextStyle.merge(
             style: const TextStyle(),
