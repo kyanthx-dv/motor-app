@@ -185,6 +185,20 @@ class Nuvem extends ChangeNotifier {
     usuario = meta;
   }
 
+  Future<Map<String, dynamic>?> meuPerfil() async {
+    if (!logado) throw ErroNuvem('Entre na sua conta para editar o perfil.');
+    final l = await _req('GET', '/rest/v1/perfis?id=eq.$usuarioId&select=usuario,nome,bio') as List;
+    return l.isEmpty ? null : Map<String, dynamic>.from(l.first as Map);
+  }
+
+  Future<void> atualizarPerfil(String nome, String bio) async {
+    if (!logado) throw ErroNuvem('Entre na sua conta para editar o perfil.');
+    final n = nome.trim(), b = bio.trim();
+    if (n.length > 40) throw ErroNuvem('Nome: no máximo 40 caracteres.');
+    if (b.length > 280) throw ErroNuvem('Bio: no máximo 280 caracteres.');
+    await _req('PATCH', '/rest/v1/perfis?id=eq.$usuarioId', corpo: {'nome': n.isEmpty ? null : n, 'bio': b.isEmpty ? null : b}, extra: {'Prefer': 'return=minimal'});
+  }
+
   Future<void> sair() async {
     try {
       if (logado) await _req('POST', '/auth/v1/logout');

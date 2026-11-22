@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'icones.dart';
 import 'busca.dart';
 import 'avisos.dart';
+import 'editar_perfil.dart';
 import 'nuvem.dart';
 import 'comentarios.dart';
 import 'dados.dart';
@@ -331,7 +332,7 @@ class PerfilAba extends StatelessWidget {
                 direita: IconButton.filledTonal(tooltip: 'Configurações', icon: const Icon(Ic.engrenagem), onPressed: () => _menuPerfil(context)),
                 stats: const [('3', 'Jogos'), ('1,2k', 'Seguidores'), ('48', 'Seguindo')],
                 botoes: Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => emBreve(context, 'Editar perfil'), child: const Text('Editar perfil'))),
+                  Expanded(child: OutlinedButton(onPressed: () => Nuvem.i.logado ? _ir(context, const EditarPerfilTela()) : aviso(context, 'Entre na sua conta para editar o perfil.'), child: const Text('Editar perfil'))),
                   const SizedBox(width: 10),
                   Expanded(child: FilledButton(onPressed: () => _ir(context, const EditorWebTela()), child: const Text('Abrir editor'))),
                 ]),

@@ -177,7 +177,7 @@ class PilulaAcao extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           IconeAnim(ligado: ativo, ligadoIcone: iconeAtivo ?? icone, desligadoIcone: icone, cor: c, tamanho: 22),
           const SizedBox(width: 8),
-          Text(rotulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ativo ? c : null)),
+          TextoRolante(rotulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ativo ? c : null)),
         ]),
       ),
     );
@@ -360,4 +360,59 @@ class TabsFixas extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(color: Cores.fundo, child: tabs);
   @override
   bool shouldRebuild(covariant TabsFixas old) => true;
+}
+
+/// Texto que "rola" quando muda (contadores): o novo valor sobe e o antigo sai.
+class TextoRolante extends StatelessWidget {
+  const TextoRolante(this.texto, {super.key, this.style});
+  final String texto;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOutCubic,
+        transitionBuilder: (child, anim) => ClipRect(
+          child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.7), end: Offset.zero).animate(anim), child: FadeTransition(opacity: anim, child: child)),
+        ),
+        child: Text(texto, key: ValueKey(texto), style: style),
+      );
+}
+
+/// Medidor de forca da senha (4 barras): tamanho, letras, numeros e simbolos.
+class ForcaSenha extends StatelessWidget {
+  const ForcaSenha(this.senha, {super.key});
+  final String senha;
+
+  int get nivel {
+    if (senha.isEmpty) return 0;
+    var n = 0;
+    if (senha.length >= 8) n++;
+    if (RegExp(r'[a-z]').hasMatch(senha) && RegExp(r'[A-Z]').hasMatch(senha)) n++;
+    if (RegExp(r'\d').hasMatch(senha)) n++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(senha) || senha.length >= 14) n++;
+    return n;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final n = nivel;
+    final cor = [Cores.texto2, Colors.redAccent, const Color(0xFFF59E0B), const Color(0xFF84CC16), Cores.verde][n];
+    final rot = ['', 'Fraca', 'Média', 'Boa', 'Forte'][n];
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(children: [
+        for (var i = 0; i < 4; i++)
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              height: 4,
+              margin: EdgeInsets.only(right: i < 3 ? 5 : 0),
+              decoration: BoxDecoration(color: i < n ? cor : Cores.cartao2, borderRadius: BorderRadius.circular(3)),
+            ),
+          ),
+        SizedBox(width: 52, child: Text(rot, textAlign: TextAlign.end, style: TextStyle(fontSize: 12, color: cor, fontWeight: FontWeight.w700))),
+      ]),
+    );
+  }
 }
