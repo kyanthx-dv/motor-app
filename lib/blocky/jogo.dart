@@ -38,7 +38,7 @@ class _JogoPaginaState extends State<JogoPagina> {
           child: ListView(padding: EdgeInsets.zero, children: [
             Container(
               height: 340,
-              decoration: BoxDecoration(gradient: LinearGradient(colors: [j.cor1.withAlpha(180), Cores.fundo], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+              color: Color.alphaBlend(j.cor1.withAlpha(60), Cores.cartao),
               child: SafeArea(
                 child: Column(children: [
                   Row(children: [IconButton(icon: const Icon(Ic.voltar), onPressed: () => Navigator.pop(context)), const Spacer(), IconButton(icon: const Icon(Ic.maisHoriz), onPressed: () => emBreve(context, 'Opções'))]),
@@ -47,7 +47,7 @@ class _JogoPaginaState extends State<JogoPagina> {
                   Text(j.titulo, style: const TextStyle(fontSize: 22)),
                   Text('${abreviar(j.visitas)} visitas · ${rotuloOrientacao(j.orientacao)}', style: const TextStyle(color: Cores.texto2)),
                   const SizedBox(height: 14),
-                  BotaoPrimario(pulsa: true, texto: 'Jogar', icone: Ic.play, cor: const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF16A34A)]), aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
+                  BotaoPrimario(pulsa: true, texto: 'Jogar', icone: Ic.play,  aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => JogoPlayer(jogo: j)))),
                 ]),
               ),
             ),
@@ -150,12 +150,12 @@ class _JogoPlayerState extends State<JogoPlayer> {
         backgroundColor: Colors.black,
         body: _pronto
             ? Stack(children: [
-                Positioned.fill(child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [j.cor1, j.cor2], begin: Alignment.topLeft, end: Alignment.bottomRight)), child: Center(child: Icon(j.icone, size: 96, color: Colors.white54)))),
+                Positioned.fill(child: Container(color: j.cor1, child: Center(child: Icon(j.icone, size: 96, color: Colors.white54)))),
                 Positioned(left: 8, top: 8, child: SafeArea(child: IconButton.filledTonal(tooltip: 'Menu', icon: const Icon(Ic.menu), onPressed: _menu))),
                 const Positioned(bottom: 12, left: 0, right: 0, child: Center(child: Text('Demonstração: aqui roda o jogo (engine)', style: TextStyle(color: Colors.white70)))),
               ])
             : Container(
-                decoration: BoxDecoration(gradient: LinearGradient(colors: [j.cor2, Colors.black], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+                color: j.cor2,
                 child: Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Icon(j.icone, size: 64, color: Colors.white70),

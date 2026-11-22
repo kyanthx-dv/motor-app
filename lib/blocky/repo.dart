@@ -8,12 +8,12 @@ import 'widgets.dart';
 
 /// Capas de post (enquanto imagens/videos proprios nao existem): 6 degrades e 6 icones, escolhidos por quem posta.
 const capasCores = <(Color, Color)>[
-  (Color(0xFF8B5CF6), Color(0xFF4C1D95)),
-  (Color(0xFF38BDF8), Color(0xFF075985)),
-  (Color(0xFFF472B6), Color(0xFF9D174D)),
-  (Color(0xFFFBBF24), Color(0xFF92400E)),
-  (Color(0xFF34D399), Color(0xFF065F46)),
-  (Color(0xFFFB7185), Color(0xFF9F1239)),
+  (Color(0xFF1D9BF0), Color(0xFF1D9BF0)),
+  (Color(0xFFF97316), Color(0xFFF97316)),
+  (Color(0xFF23A55A), Color(0xFF23A55A)),
+  (Color(0xFFF23F43), Color(0xFFF23F43)),
+  (Color(0xFFF59E0B), Color(0xFFF59E0B)),
+  (Color(0xFF8E9297), Color(0xFF8E9297)),
 ];
 const capasIcones = <IconData>[Ic.brilho, Ic.controle, Ic.foguete, Ic.flor, Ic.musica, Ic.camera];
 

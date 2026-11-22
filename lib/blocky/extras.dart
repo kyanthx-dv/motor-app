@@ -23,13 +23,13 @@ class _BotaoSeguirState extends State<BotaoSeguir> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          height: 34,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(gradient: _seguindo ? null : degradeMarca, color: _seguindo ? Cores.cartao2 : null, borderRadius: BorderRadius.circular(17)),
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(color: _seguindo ? Cores.cartao2 : Cores.acento, borderRadius: BorderRadius.circular(8)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: Icon(_seguindo ? Ic.ok : Ic.mais, key: ValueKey<bool>(_seguindo), size: 16, color: _seguindo ? Cores.texto2 : Colors.white)),
             const SizedBox(width: 4),
-            Text(_seguindo ? 'Seguindo' : 'Seguir', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _seguindo ? Cores.texto2 : Colors.white)),
+            Text(_seguindo ? 'Seguindo' : 'Seguir', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _seguindo ? Cores.texto2 : Colors.white)),
           ]),
         ),
       );

@@ -5,7 +5,7 @@ import 'nuvem.dart';
 import 'entrada.dart';
 import 'widgets.dart';
 
-const _blocos = <Color>[Color(0xFF8B5CF6), Color(0xFF38BDF8), Color(0xFFF472B6), Color(0xFFFBBF24)];
+const _blocos = <Color>[Color(0xFF1D9BF0), Color(0xFFF59E0B), Color(0xFF23A55A), Color(0xFFF23F43)];
 
 /// Logo: quatro blocos arredondados.
 class LogoBlocky extends StatelessWidget {
@@ -89,7 +89,7 @@ class _AberturaTelaState extends State<AberturaTela> with SingleTickerProviderSt
                         return Positioned(
                           left: alvo.dx + fora.dx * (1 - k),
                           top: alvo.dy + fora.dy * (1 - k),
-                          child: Opacity(opacity: k.clamp(0.0, 1.0), child: Transform.rotate(angle: (1 - k) * 0.9, child: Container(width: b, height: b, decoration: BoxDecoration(color: _blocos[i], borderRadius: BorderRadius.circular(b * 0.28), boxShadow: [BoxShadow(color: _blocos[i].withAlpha(90), blurRadius: 18)])))),
+                          child: Opacity(opacity: k.clamp(0.0, 1.0), child: Transform.rotate(angle: (1 - k) * 0.9, child: Container(width: b, height: b, decoration: BoxDecoration(color: _blocos[i], borderRadius: BorderRadius.circular(b * 0.28))))),
                         );
                       }),
                   ]),
