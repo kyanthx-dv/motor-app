@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'icones.dart';
 import 'jogar_tela.dart';
+import 'objeto.dart';
 import 'cena_config.dart';
 import 'projetos.dart';
 import 'widgets.dart';
@@ -147,6 +148,9 @@ class _CenaTelaState extends State<CenaTela> {
   double _altPainel = 210; // altura do painel (puxavel)
   static const _alturas = [52.0, 210.0, 400.0];
   int? _ultimo;
+  // arrastar o objeto selecionado para outra celula
+  bool _movendo = false;
+  (int, int)? _destino;
 
   // desfazer / refazer: cada traco guarda o valor anterior das celulas tocadas
   final _desfazer = <Map<String, int?>>[];
@@ -192,6 +196,7 @@ class _CenaTelaState extends State<CenaTela> {
     final depois = _apagar ? null : _sel;
     if (antes == depois) return;
     _traco.putIfAbsent(k, () => antes);
+    c.props.remove(k);
     if (depois == null) {
       c.celulas.remove(k);
     } else {
@@ -237,8 +242,45 @@ class _CenaTelaState extends State<CenaTela> {
     return (x, y);
   }
 
+  bool get _temSel => _selX != null && _selY != null && c.celulas.containsKey('$_selX,$_selY');
+
+  void _mudarProp(String chave, Object? valor) {
+    final k = '$_selX,$_selY';
+    final p = c.props.putIfAbsent(k, () => {});
+    if (valor == null) {
+      p.remove(chave);
+    } else {
+      p[chave] = valor;
+    }
+    if (p.isEmpty) c.props.remove(k);
+    RepositorioProjetos.instancia.salvar();
+    setState(() {});
+    _versao.value++;
+  }
+
   void _terminou(ScaleEndDetails _) {
     _seg?.cancel();
+    if (_movendo) {
+      final d = _destino, ox = _selX, oy = _selY;
+      _movendo = false;
+      _destino = null;
+      if (d != null && ox != null && oy != null && (d.$1 != ox || d.$2 != oy)) {
+        final de = '$ox,$oy', para = '${d.$1},${d.$2}';
+        if (!c.celulas.containsKey(para)) {
+          _desfazer.add({de: c.celulas[de], para: null});
+          _refazer.clear();
+          c.celulas[para] = c.celulas.remove(de)!;
+          final p = c.props.remove(de);
+          if (p != null) c.props[para] = p;
+          _selX = d.$1;
+          _selY = d.$2;
+          RepositorioProjetos.instancia.salvar();
+        }
+      }
+      _versao.value++;
+      setState(() {});
+      return;
+    }
     if (_pintando && _traco.isNotEmpty) {
       _desfazer.add(_traco);
       if (_desfazer.length > 100) _desfazer.removeAt(0);
@@ -246,9 +288,11 @@ class _CenaTelaState extends State<CenaTela> {
       _traco = {};
       RepositorioProjetos.instancia.salvar(); // salva sozinho a cada traco
     } else if (!_pintando && !_mexeu) {
-      final cel = _celulaEm(_ini); // toque curto: seleciona a celula (ou limpa a selecao)
-      _selX = cel?.$1;
-      _selY = cel?.$2;
+      final cel = _celulaEm(_ini); // toque curto: seleciona um OBJETO (celula vazia limpa a selecao)
+      final valido = cel != null && c.celulas.containsKey('${cel.$1},${cel.$2}');
+      _selX = valido ? cel.$1 : null;
+      _selY = valido ? cel.$2 : null;
+      if (valido && _altPainel < 100) _altPainel = _alturas[1];
       _versao.value++;
     }
     _pintando = false;
@@ -263,6 +307,16 @@ class _CenaTelaState extends State<CenaTela> {
     _mexeu = d.pointerCount > 1;
     _ini = d.localFocalPoint;
     _seg?.cancel();
+    _movendo = false;
+    _destino = null;
+    if (d.pointerCount == 1 && _temSel) {
+      final sob = _celulaEm(d.localFocalPoint);
+      if (sob != null && sob.$1 == _selX && sob.$2 == _selY) {
+        _movendo = true; // dedo em cima do objeto selecionado: arrastar = mover o objeto
+        _destino = sob;
+        return;
+      }
+    }
     if (d.pointerCount == 1) {
       _seg = Timer(const Duration(milliseconds: 380), () {
         if (_mexeu) return;
@@ -287,9 +341,16 @@ class _CenaTelaState extends State<CenaTela> {
       _cont = d.pointerCount;
       _rebase(d.localFocalPoint);
       if (d.pointerCount > 1) {
+        _movendo = false;
+        _destino = null;
         _mexeu = true;
         _seg?.cancel();
       }
+      return;
+    }
+    if (_movendo && d.pointerCount == 1) {
+      _destino = _celulaEm(d.localFocalPoint) ?? _destino;
+      _versao.value++;
       return;
     }
     if (_pintando && d.pointerCount == 1) {
@@ -334,6 +395,10 @@ class _CenaTelaState extends State<CenaTela> {
   Widget build(BuildContext context) {
     final itens = [for (var i = 0; i < paleta.length; i++) if (paleta[i].aba == _abas[_aba]) i];
     final grande = _altPainel > 300;
+    final objK = _temSel ? '$_selX,$_selY' : null;
+    final objIdx = objK == null ? null : c.celulas[objK];
+    final objItem = objIdx != null && objIdx >= 0 && objIdx < paleta.length ? paleta[objIdx] : null;
+    final objDados = objItem == null ? null : objetoEfetivo(c, objK!, objItem);
     Widget celula(int i) => Toque(
           aoTocar: () => setState(() {
             _sel = i;
@@ -366,7 +431,7 @@ class _CenaTelaState extends State<CenaTela> {
                   valueListenable: _versao,
                   builder: (_, __, ___) {
                     final sx = _selX, sy = _selY;
-                    if (sx == null || sy == null) return const SizedBox.shrink();
+                    if (sx == null || sy == null || _movendo) return const SizedBox.shrink();
                     final cx = _desl.dx + (sx + 0.5) * _cs * _esc;
                     final topo = _desl.dy + (c.altura - sy - 1) * _cs * _esc;
                     final tem = c.celulas.containsKey('$sx,$sy');
@@ -381,6 +446,9 @@ class _CenaTelaState extends State<CenaTela> {
                       _refazer.clear();
                       if (v == null) {
                         c.celulas.remove(k);
+                        c.props.remove(k);
+                        _selX = null;
+                        _selY = null;
                       } else {
                         c.celulas[k] = v;
                       }
@@ -392,7 +460,6 @@ class _CenaTelaState extends State<CenaTela> {
                       left: (cx - 50).clamp(4.0, box.maxWidth - 104),
                       top: (topo - 46).clamp(60.0, box.maxHeight - 50),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        b(Ic.mais, () => aplicar(_sel)),
                         if (tem) b(Ic.lixeira, () => aplicar(null)),
                         b(Ic.fechar, () {
                           _selX = null;
@@ -479,9 +546,9 @@ class _CenaTelaState extends State<CenaTela> {
                   height: 52,
                   child: Row(children: [
                     const SizedBox(width: 14),
-                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(paleta[_sel]))),
+                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(objItem ?? paleta[_sel]))),
                     const SizedBox(width: 10),
-                    Text(paleta[_sel].nome, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    Flexible(child: Text(objItem == null ? paleta[_sel].nome : '${objDados!['nome']}  ·  ($_selX, $_selY)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
                     const Spacer(),
                     Container(width: 36, height: 4, decoration: BoxDecoration(color: Cores.texto2.withAlpha(120), borderRadius: BorderRadius.circular(3))),
                     const SizedBox(width: 50),
@@ -491,7 +558,23 @@ class _CenaTelaState extends State<CenaTela> {
                   ]),
                 ),
               ),
-              if (_altPainel > 100) ...[
+              if (_altPainel > 100 && objItem != null)
+                Expanded(
+                  child: PainelObjeto(
+                    item: objItem,
+                    dados: objDados!,
+                    x: _selX!,
+                    y: _selY!,
+                    aoMudar: _mudarProp,
+                    aoRestaurar: () {
+                      c.props.remove(objK);
+                      RepositorioProjetos.instancia.salvar();
+                      setState(() {});
+                      _versao.value++;
+                    },
+                  ),
+                )
+              else if (_altPainel > 100) ...[
                 SizedBox(
                   height: 34,
                   child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: [
@@ -551,12 +634,19 @@ class _CenaPainter extends CustomPainter {
     canvas.drawRRect(RRect.fromRectAndRadius(area.inflate(2), const Radius.circular(6)), Paint()..color = Colors.white.withAlpha(30));
     canvas.drawRect(area, Paint()..color = Color(c.corFundo));
     // itens
-    c.celulas.forEach((k, i) {
-      if (i < 0 || i >= paleta.length) return;
+    int camadaDe(String k) => (c.props[k]?['camada'] as num?)?.toInt() ?? 0;
+    final ordem = c.celulas.keys.toList()..sort((a, b) => camadaDe(a).compareTo(camadaDe(b)));
+    for (final k in ordem) {
+      final i = c.celulas[k]!;
+      if (i < 0 || i >= paleta.length) continue;
       final p = k.split(',');
       final x = int.parse(p[0]), y = int.parse(p[1]);
-      pintarItem(canvas, Rect.fromLTWH(x * cs, (c.altura - 1 - y) * cs, cs, cs), paleta[i]);
-    });
+      final r = Rect.fromLTWH(x * cs, (c.altura - 1 - y) * cs, cs, cs);
+      final oculto = c.props[k]?['visivel'] == false;
+      if (oculto) canvas.saveLayer(r, Paint()..color = const Color(0x55FFFFFF));
+      pintarItem(canvas, r, paleta[i]);
+      if (oculto) canvas.restore();
+    }
     // grade fina (1 pixel de tela, qualquer zoom)
     final fina = Paint()
       ..color = Colors.black.withAlpha(55)
@@ -581,7 +671,17 @@ class _CenaPainter extends CustomPainter {
       tp.paint(canvas, Offset(-6 - tp.width, (c.altura - 1 - y) * cs + cs / 2 - tp.height / 2));
     }
     if (s._selX != null && s._selY != null) {
-      final r = Rect.fromLTWH(s._selX! * cs, (c.altura - 1 - s._selY!) * cs, cs, cs);
+      final dest = s._movendo ? s._destino : null;
+      final gx = dest?.$1 ?? s._selX!, gy = dest?.$2 ?? s._selY!;
+      final r = Rect.fromLTWH(gx * cs, (c.altura - 1 - gy) * cs, cs, cs);
+      if (dest != null) {
+        final i = c.celulas['${s._selX},${s._selY}'];
+        if (i != null && i >= 0 && i < paleta.length) {
+          canvas.saveLayer(r, Paint()..color = const Color(0xB3FFFFFF));
+          pintarItem(canvas, r, paleta[i]);
+          canvas.restore();
+        }
+      }
       canvas.drawRect(r, Paint()..color = azulEditor.withAlpha(50));
       canvas.drawRect(r, Paint()
         ..color = azulEditor

@@ -7,6 +7,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'avisos.dart';
 import 'dados.dart';
 import 'mapa.dart';
+import 'objeto.dart';
 import 'projetos.dart';
 import 'servidor.dart';
 import 'widgets.dart';
@@ -39,8 +40,16 @@ class _JogarTelaState extends State<JogarTela> {
     SystemChrome.setPreferredOrientations(retrato ? [DeviceOrientation.portraitUp] : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     final json = widget.projeto.toJson();
+    final cenasJson = json['cenas'] as List;
+    for (var i = 0; i < cenasJson.length; i++) {
+      final ce = widget.projeto.cenas[i];
+      (cenasJson[i] as Map<String, dynamic>)['obj'] = {
+        for (final e in ce.celulas.entries)
+          if (e.value >= 0 && e.value < paleta.length) e.key: objetoEfetivo(ce, e.key, paleta[e.value]),
+      };
+    }
     if (widget.daCena != null) {
-      final cenas = json['cenas'] as List;
+      final cenas = cenasJson;
       for (var i = 0; i < cenas.length; i++) {
         (cenas[i] as Map<String, dynamic>)['ini'] = identical(widget.projeto.cenas[i], widget.daCena);
       }

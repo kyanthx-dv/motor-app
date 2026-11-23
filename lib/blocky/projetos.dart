@@ -15,7 +15,7 @@ enum Fisica { plataforma, rpg }
 String rotuloFisica(Fisica f) => f == Fisica.plataforma ? 'Plataforma' : 'RPG';
 
 class Cena {
-  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, Map<String, int>? celulas, this.inicial = false, this.px = -1, this.py = -1}) : celulas = celulas ?? {};
+  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, Map<String, int>? celulas, this.inicial = false, this.px = -1, this.py = -1, Map<String, Map<String, dynamic>>? props}) : celulas = celulas ?? {}, props = props ?? {};
   String nome;
   Fisica fisica;
   int largura;
@@ -27,8 +27,10 @@ class Cena {
   double py;
   /// "x,y" -> indice do item da paleta (origem embaixo-esquerda, como no editor de PC).
   Map<String, int> celulas;
+  /// Propriedades por objeto (chave "x,y"): camada (prioridade de desenho), solido, visivel, scripts, nome. Ausente = padrao do tipo.
+  Map<String, Map<String, dynamic>> props;
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'cel': celulas};
+  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'cel': celulas, 'props': props};
 
   static Cena fromJson(Map<String, dynamic> j) => Cena(
         nome: (j['nome'] as String?) ?? 'Cena',
@@ -40,9 +42,10 @@ class Cena {
         px: ((j['px'] as num?) ?? -1).toDouble(),
         py: ((j['py'] as num?) ?? -1).toDouble(),
         celulas: {for (final e in ((j['cel'] as Map?) ?? {}).entries) e.key as String: (e.value as num).toInt()},
+        props: {for (final e in ((j['props'] as Map?) ?? {}).entries) e.key as String: Map<String, dynamic>.from(e.value as Map)},
       );
 
-  Cena copia() => Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, celulas: Map.of(celulas), px: px + 30, py: py + 30);
+  Cena copia() => Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, celulas: Map.of(celulas), props: {for (final e in props.entries) e.key: Map<String, dynamic>.from(e.value)}, px: px + 30, py: py + 30);
 }
 
 class Projeto {
