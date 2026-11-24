@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'icones.dart';
 import 'busca.dart';
 import 'avisos.dart';
+import 'meus_desenhos.dart';
 import 'editar_perfil.dart';
 import 'nuvem.dart';
 import 'comentarios.dart';
@@ -500,6 +501,13 @@ void _menuPerfil(BuildContext context) => showModalBottomSheet<void>(
                         emBreve(context, t);
                       },
                     ),
+                  ListTile(
+                    title: const Center(child: Text('Meus desenhos')),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MeusDesenhosTela()));
+                    },
+                  ),
                   ListTile(
                     title: const Center(child: Text('Avisos e erros')),
                     onTap: () {

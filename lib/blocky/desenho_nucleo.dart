@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -31,6 +32,15 @@ class Camada {
   bool bloqueada;
   double opac;
 
+  Map<String, dynamic> toJson() => {'nome': nome, 'vis': visivel, 'bloq': bloqueada, 'opac': opac, 'px': base64Encode(px.buffer.asUint8List(px.offsetInBytes, px.lengthInBytes))};
+
+  static Camada deJson(Map<String, dynamic> j, int n) {
+    final bytes = base64Decode(j['px'] as String);
+    final px = Uint32List(n);
+    if (bytes.length == n * 4) px.buffer.asUint8List().setAll(0, bytes);
+    return Camada._(j['nome'] as String, px, j['vis'] as bool? ?? true, j['bloq'] as bool? ?? false, (j['opac'] as num?)?.toDouble() ?? 1);
+  }
+
   Camada copia() => Camada._(nome, Uint32List.fromList(px), visivel, bloqueada, opac);
 }
 
@@ -57,9 +67,25 @@ class Documento {
     atual = 1;
   }
 
+  Documento.restaurar(this.config, List<Camada> cs, int at)
+      : l = config.largura,
+        a = config.altura {
+    camadas = cs;
+    atual = at.clamp(0, cs.length - 1);
+  }
+
+  Map<String, dynamic> toJson() => {'nome': config.nome, 'l': l, 'a': a, 'fundo': config.fundo, 'atual': atual, 'camadas': [for (final c in camadas) c.toJson()]};
+
+  static Documento deJson(Map<String, dynamic> j) {
+    final l = j['l'] as int, a = j['a'] as int;
+    final cfg = ConfigDesenho(nome: j['nome'] as String, largura: l, altura: a, fundo: j['fundo'] as int?);
+    final cs = [for (final c in (j['camadas'] as List)) Camada.deJson(Map<String, dynamic>.from(c as Map), l * a)];
+    return Documento.restaurar(cfg, cs.isEmpty ? [Camada('Camada 1', l * a)] : cs, (j['atual'] as num?)?.toInt() ?? 0);
+  }
+
   static const int maxHistorico = 40;
 
-  final ConfigDesenho config;
+  ConfigDesenho config;
   final int l;
   final int a;
   late List<Camada> camadas;

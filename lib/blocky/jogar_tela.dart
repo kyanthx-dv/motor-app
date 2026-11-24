@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'avisos.dart';
+import 'biblioteca.dart';
 import 'dados.dart';
 import 'mapa.dart';
 import 'objeto.dart';
@@ -39,29 +40,6 @@ class _JogarTelaState extends State<JogarTela> {
     final retrato = widget.projeto.orientacao == Orientacao.retrato;
     SystemChrome.setPreferredOrientations(retrato ? [DeviceOrientation.portraitUp] : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    final json = widget.projeto.toJson();
-    final cenasJson = json['cenas'] as List;
-    for (var i = 0; i < cenasJson.length; i++) {
-      final ce = widget.projeto.cenas[i];
-      (cenasJson[i] as Map<String, dynamic>)['obj'] = {
-        for (final e in ce.celulas.entries)
-          if (e.value >= 0 && e.value < paleta.length) e.key: objetoEfetivo(ce, e.key, paleta[e.value]),
-      };
-    }
-    if (widget.daCena != null) {
-      final cenas = cenasJson;
-      for (var i = 0; i < cenas.length; i++) {
-        (cenas[i] as Map<String, dynamic>)['ini'] = identical(widget.projeto.cenas[i], widget.daCena);
-      }
-    }
-    final dados = jsonEncode({
-      'projeto': json,
-      'paleta': [
-        for (final it in paleta)
-          // ignore: deprecated_member_use
-          {'nome': it.nome, 'aba': it.aba, 'cor': it.cor.value},
-      ],
-    });
     _web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF141414))
@@ -71,8 +49,44 @@ class _JogarTelaState extends State<JogarTela> {
       ..addJavaScriptChannel('Sair', onMessageReceived: (_) {
         if (mounted) Navigator.of(context).pop();
       })
-      ..setNavigationDelegate(NavigationDelegate(onPageFinished: (_) => _web.runJavaScript('iniciarProjeto($dados)')))
+      ..setNavigationDelegate(NavigationDelegate(onPageFinished: (_) async => _web.runJavaScript('iniciarProjeto(${await _dados()})')))
       ..loadRequest(Uri.parse('http://127.0.0.1:$portaLocal/jogar.html'));
+  }
+
+  Future<String> _dados() async {
+    await Biblioteca.i.carregar();
+    final json = widget.projeto.toJson();
+    final cenasJson = json['cenas'] as List;
+    for (var i = 0; i < cenasJson.length; i++) {
+      final ce = widget.projeto.cenas[i];
+      (cenasJson[i] as Map<String, dynamic>)['obj'] = {
+        for (final e in ce.celulas.entries)
+          if (itemDe(e.value) != null) e.key: objetoEfetivo(ce, e.key, itemDe(e.value)!),
+      };
+    }
+    if (widget.daCena != null) {
+      final cenas = cenasJson;
+      for (var i = 0; i < cenas.length; i++) {
+        (cenas[i] as Map<String, dynamic>)['ini'] = identical(widget.projeto.cenas[i], widget.daCena);
+      }
+    }
+    final imagens = <String, dynamic>{};
+    for (final ce in widget.projeto.cenas) {
+      for (final v in ce.celulas.values) {
+        if (v < baseAsset || imagens.containsKey('$v')) continue;
+        final a = Biblioteca.i.porId(v - baseAsset), png = a == null ? null : await Biblioteca.i.pngBytes(a.id);
+        if (a != null && png != null) imagens['$v'] = {'nome': a.nome, 'l': a.l, 'a': a.a, 'png': 'data:image/png;base64,${base64Encode(png)}'};
+      }
+    }
+    return jsonEncode({
+      'imagens': imagens,
+      'projeto': json,
+      'paleta': [
+        for (final it in paleta)
+          // ignore: deprecated_member_use
+          {'nome': it.nome, 'aba': it.aba, 'cor': it.cor.value},
+      ],
+    });
   }
 
   @override
