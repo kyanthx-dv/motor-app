@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'icones.dart';
 import 'jogar_tela.dart';
+import 'biblioteca.dart';
 import 'objeto.dart';
 import 'cena_config.dart';
 import 'projetos.dart';
@@ -15,7 +16,8 @@ enum Arte { grama, terra, pedra, agua, areia, icone }
 
 /// Item da paleta de exemplo (depois vira o catalogo real de assets da engine).
 class ItemPaleta {
-  const ItemPaleta(this.nome, this.aba, this.arte, this.cor, [this.icone = Ic.ponto]);
+  const ItemPaleta(this.nome, this.aba, this.arte, this.cor, [this.icone = Ic.ponto, this.assetId]);
+  final int? assetId; // desenho da biblioteca (aba Meus)
   final String nome;
   final String aba; // Tile | Deco | Ator | Objeto
   final Arte arte;
@@ -40,10 +42,25 @@ const paleta = <ItemPaleta>[
   ItemPaleta('Bandeira', 'Objeto', Arte.icone, Color(0xFFEF4444), Ic.bandeira),
 ];
 
-const _abas = ['Tile', 'Deco', 'Ator', 'Objeto'];
+const _abas = ['Tile', 'Deco', 'Ator', 'Objeto', 'Meus'];
+
+/// Item da paleta para um valor de celula (indice da paleta fixa ou desenho da biblioteca). null = invalido/apagado.
+ItemPaleta? itemDe(int v) {
+  if (v >= baseAsset) {
+    final a = Biblioteca.i.porId(v - baseAsset);
+    return a == null ? null : ItemPaleta(a.nome, 'Meus', Arte.icone, const Color(0xFFFFFFFF), Ic.ponto, a.id);
+  }
+  return v >= 0 && v < paleta.length ? paleta[v] : null;
+}
 
 /// Desenha um item dentro de [r]. Tiles sao desenhados por codigo (sem arquivo de imagem), encaixam sem frestas.
 void pintarItem(Canvas c, Rect r, ItemPaleta it) {
+  final aid = it.assetId;
+  if (aid != null) {
+    final im = Biblioteca.i.imagem(aid);
+    if (im != null) c.drawImageRect(im, Rect.fromLTWH(0, 0, im.width.toDouble(), im.height.toDouble()), r, Paint()..filterQuality = FilterQuality.none);
+    return;
+  }
   final u = r.width / 10; // unidade de 1/10 da celula
   switch (it.arte) {
     case Arte.terra:
@@ -168,8 +185,23 @@ class _CenaTelaState extends State<CenaTela> {
 
   Cena get c => widget.cena;
 
+  void _aoMudarBiblioteca() {
+    if (mounted) {
+      _versao.value++;
+      setState(() {});
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Biblioteca.i.carregar();
+    Biblioteca.i.addListener(_aoMudarBiblioteca);
+  }
+
   @override
   void dispose() {
+    Biblioteca.i.removeListener(_aoMudarBiblioteca);
     _seg?.cancel();
     _versao.dispose();
     RepositorioProjetos.instancia.salvar();
@@ -393,11 +425,11 @@ class _CenaTelaState extends State<CenaTela> {
 
   @override
   Widget build(BuildContext context) {
-    final itens = [for (var i = 0; i < paleta.length; i++) if (paleta[i].aba == _abas[_aba]) i];
+    final itens = _abas[_aba] == 'Meus' ? [for (final a in Biblioteca.i.itens) baseAsset + a.id] : [for (var i = 0; i < paleta.length; i++) if (paleta[i].aba == _abas[_aba]) i];
     final grande = _altPainel > 300;
     final objK = _temSel ? '$_selX,$_selY' : null;
     final objIdx = objK == null ? null : c.celulas[objK];
-    final objItem = objIdx != null && objIdx >= 0 && objIdx < paleta.length ? paleta[objIdx] : null;
+    final objItem = objIdx == null ? null : itemDe(objIdx);
     final objDados = objItem == null ? null : objetoEfetivo(c, objK!, objItem);
     Widget celula(int i) => Toque(
           aoTocar: () => setState(() {
@@ -408,7 +440,7 @@ class _CenaTelaState extends State<CenaTela> {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
-            child: CustomPaint(painter: _Miniatura(paleta[i])),
+            child: CustomPaint(painter: _Miniatura(itemDe(i) ?? paleta[0])),
           ),
         );
     return Scaffold(
@@ -546,9 +578,9 @@ class _CenaTelaState extends State<CenaTela> {
                   height: 52,
                   child: Row(children: [
                     const SizedBox(width: 14),
-                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(objItem ?? paleta[_sel]))),
+                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(objItem ?? itemDe(_sel) ?? paleta[0]))),
                     const SizedBox(width: 10),
-                    Flexible(child: Text(objItem == null ? paleta[_sel].nome : '${objDados!['nome']}  ·  ($_selX, $_selY)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
+                    Flexible(child: Text(objItem == null ? (itemDe(_sel) ?? paleta[0]).nome : '${objDados!['nome']}  ·  ($_selX, $_selY)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
                     const Spacer(),
                     Container(width: 36, height: 4, decoration: BoxDecoration(color: Cores.texto2.withAlpha(120), borderRadius: BorderRadius.circular(3))),
                     const SizedBox(width: 50),
@@ -638,13 +670,14 @@ class _CenaPainter extends CustomPainter {
     final ordem = c.celulas.keys.toList()..sort((a, b) => camadaDe(a).compareTo(camadaDe(b)));
     for (final k in ordem) {
       final i = c.celulas[k]!;
-      if (i < 0 || i >= paleta.length) continue;
+      final item = itemDe(i);
+      if (item == null) continue;
       final p = k.split(',');
       final x = int.parse(p[0]), y = int.parse(p[1]);
       final r = Rect.fromLTWH(x * cs, (c.altura - 1 - y) * cs, cs, cs);
       final oculto = c.props[k]?['visivel'] == false;
       if (oculto) canvas.saveLayer(r, Paint()..color = const Color(0x55FFFFFF));
-      pintarItem(canvas, r, paleta[i]);
+      pintarItem(canvas, r, item);
       if (oculto) canvas.restore();
     }
     // grade fina (1 pixel de tela, qualquer zoom)
@@ -676,9 +709,10 @@ class _CenaPainter extends CustomPainter {
       final r = Rect.fromLTWH(gx * cs, (c.altura - 1 - gy) * cs, cs, cs);
       if (dest != null) {
         final i = c.celulas['${s._selX},${s._selY}'];
-        if (i != null && i >= 0 && i < paleta.length) {
+        final item = i == null ? null : itemDe(i);
+        if (item != null) {
           canvas.saveLayer(r, Paint()..color = const Color(0xB3FFFFFF));
-          pintarItem(canvas, r, paleta[i]);
+          pintarItem(canvas, r, item);
           canvas.restore();
         }
       }

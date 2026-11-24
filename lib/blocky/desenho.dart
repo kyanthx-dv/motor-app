@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'avisos.dart';
+import 'biblioteca.dart';
 import 'desenho_nucleo.dart';
 import 'widgets.dart';
 
@@ -155,16 +157,21 @@ const _paleta = <int>[
 ];
 
 class EditorDesenho extends StatefulWidget {
-  const EditorDesenho({super.key, required this.config});
+  const EditorDesenho({super.key, required this.config, this.doc, this.asset});
   final ConfigDesenho config;
+  final Documento? doc; // desenho salvo sendo reaberto
+  final AssetSalvo? asset;
 
   @override
   State<EditorDesenho> createState() => _EditorDesenhoState();
 }
 
 class _EditorDesenhoState extends State<EditorDesenho> {
-  late final Documento d = Documento(widget.config);
-  late String _nome = widget.config.nome;
+  late final Documento d = widget.doc ?? Documento(widget.config);
+  late String _nome = widget.doc?.config.nome ?? widget.config.nome;
+  late AssetSalvo? _asset = widget.asset;
+  Timer? _auto;
+  bool _salvando = false;
 
   Ferr _ferr = Ferr.lapis;
   Pincel _pincel = Pincel.quadrado;
@@ -207,6 +214,7 @@ class _EditorDesenhoState extends State<EditorDesenho> {
 
   @override
   void dispose() {
+    _auto?.cancel();
     _img?.dispose();
     super.dispose();
   }
@@ -228,6 +236,28 @@ class _EditorDesenhoState extends State<EditorDesenho> {
   void _mudou() {
     setState(() {});
     _recompor();
+    _auto?.cancel();
+    _auto = Timer(const Duration(seconds: 2), _salvar); // salva sozinho
+  }
+
+  Future<void> _salvar() async {
+    _auto?.cancel();
+    if (_salvando) {
+      _auto = Timer(const Duration(seconds: 1), _salvar);
+      return;
+    }
+    _salvando = true;
+    try {
+      if (_asset == null) {
+        if (d.podeDesfazer) _asset = await Biblioteca.i.criar(d);
+      } else {
+        await Biblioteca.i.salvar(_asset!, d);
+      }
+    } catch (e) {
+      Avisos.add(Nivel.erro, 'Salvar desenho: $e');
+    } finally {
+      _salvando = false;
+    }
   }
 
   (int, int) _cel(Offset p) {
@@ -514,7 +544,11 @@ class _EditorDesenhoState extends State<EditorDesenho> {
       ),
     );
     c.dispose();
-    if (r != null) setState(() => _nome = r);
+    if (r != null) {
+      d.config = ConfigDesenho(nome: r, largura: d.l, altura: d.a, fundo: d.config.fundo);
+      setState(() => _nome = r);
+      _mudou();
+    }
   }
 
   void _colar() {
@@ -732,22 +766,8 @@ class _EditorDesenhoState extends State<EditorDesenho> {
       );
 
   Future<void> _sair() async {
-    if (!d.podeDesfazer) {
-      Navigator.of(context).pop();
-      return;
-    }
-    final sair = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sair do desenho?'),
-        content: const Text('O desenho ainda não é salvo sozinho. Exporte o PNG antes de sair para não perder.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Ficar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sair')),
-        ],
-      ),
-    );
-    if (sair == true && mounted) Navigator.of(context).pop();
+    await _salvar();
+    if (mounted) Navigator.of(context).pop();
   }
 
   Widget _opcoes() {
