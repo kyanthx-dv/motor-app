@@ -46,10 +46,11 @@ class _ConfigCenaState extends State<_ConfigCena> {
     c.largura = _l;
     c.altura = _a;
     c.corFundo = _cor;
-    c.celulas.removeWhere((k, _) {
-      final p = k.split(',');
-      return int.parse(p[0]) >= _l || int.parse(p[1]) >= _a; // celulas fora do novo tamanho
-    });
+    c.objetos.removeWhere((o) => o.x >= _l || o.y >= _a); // objetos fora do novo tamanho
+    for (final o in c.objetos) {
+      o.w = o.w.clamp(1, _l - o.x).toInt();
+      o.h = o.h.clamp(1, _a - o.y).toInt();
+    }
     RepositorioProjetos.instancia.salvar();
     Navigator.pop(context);
   }

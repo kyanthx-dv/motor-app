@@ -22,27 +22,41 @@ List<String> scriptsPadrao(ItemPaleta it) => switch (it.nome) {
       _ => [],
     };
 
+bool ehTile(ItemPaleta it) => it.aba == 'Tile';
+
+/// Tile nao muda de tamanho; os outros tipos sim.
+bool podeRedimensionar(ItemPaleta it) => !ehTile(it);
+
+/// Scripts que o tipo aceita: Tile nenhum; Deco so movimento; Ator comportamentos de inimigo; Objeto interacoes.
+List<String> scriptsPermitidos(ItemPaleta it) => switch (it.aba) {
+      'Tile' => const [],
+      'Deco' => const ['patrulha'],
+      'Ator' => const ['perseguir', 'patrulha', 'perigo'],
+      _ => const ['coletavel', 'vitoria', 'perigo', 'patrulha'],
+    };
+
 /// Propriedades finais de um objeto (o que foi mudado por cima do padrao do tipo).
-Map<String, dynamic> objetoEfetivo(Cena c, String k, ItemPaleta it) {
-  final p = c.props[k] ?? const <String, dynamic>{};
+Map<String, dynamic> objetoEfetivo(ObjetoCena o, ItemPaleta it) {
+  final p = o.props;
+  final ok = scriptsPermitidos(it);
   return {
     'nome': (p['nome'] as String?) ?? it.nome,
     'camada': (p['camada'] as num?)?.toInt() ?? 0,
     'solido': (p['solido'] as bool?) ?? solidoPadrao(it),
     'visivel': (p['visivel'] as bool?) ?? true,
     'textura': (p['textura'] as num?)?.toInt(),
-    'scripts': [for (final s in ((p['scripts'] as List?) ?? scriptsPadrao(it))) s as String],
+    'scripts': [for (final s in ((p['scripts'] as List?) ?? scriptsPadrao(it))) if (ok.contains(s)) s as String],
   };
 }
 
 /// Painel que aparece no lugar da paleta enquanto um objeto esta selecionado.
 class PainelObjeto extends StatelessWidget {
-  const PainelObjeto({super.key, required this.item, required this.imagem, required this.aoTrocarImagem, required this.dados, required this.x, required this.y, required this.aoMudar, required this.aoRestaurar});
+  const PainelObjeto({super.key, required this.item, required this.imagem, required this.aoTrocarImagem, required this.dados, required this.id, required this.aoMudar, required this.aoRestaurar});
   final ItemPaleta item;
   final Widget imagem; // sprite atual do objeto
   final VoidCallback aoTrocarImagem;
   final Map<String, dynamic> dados; // resultado de objetoEfetivo
-  final int x, y;
+  final int id;
   final void Function(String chave, Object? valor) aoMudar;
   final VoidCallback aoRestaurar;
 
@@ -52,7 +66,8 @@ class PainelObjeto extends StatelessWidget {
   Widget build(BuildContext context) {
     final camada = dados['camada'] as int;
     final scripts = (dados['scripts'] as List).cast<String>();
-    final livres = [for (final id in scriptsDisponiveis.keys) if (!scripts.contains(id)) id];
+    final permitidos = scriptsPermitidos(item);
+    final livres = [for (final id in permitidos) if (!scripts.contains(id)) id];
     return ListView(padding: const EdgeInsets.only(bottom: 16), children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -81,7 +96,7 @@ class PainelObjeto extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: TextFormField(
-          key: ValueKey('nome$x,$y'),
+          key: ValueKey('nome$id'),
           initialValue: (dados['nome'] as String) == item.nome ? '' : dados['nome'] as String,
           maxLength: 30,
           decoration: InputDecoration(labelText: 'Nome do objeto', hintText: item.nome, counterText: ''),
@@ -89,7 +104,8 @@ class PainelObjeto extends StatelessWidget {
         ),
       ),
       _secao('SCRIPTS ANEXADOS'),
-      if (scripts.isEmpty) const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Text('Nenhum script.', style: TextStyle(color: Cores.texto2))),
+      if (permitidos.isEmpty) const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Text('Tiles não aceitam scripts (são só cenário sólido ou decorativo).', style: TextStyle(color: Cores.texto2)))
+      else if (scripts.isEmpty) const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Text('Nenhum script.', style: TextStyle(color: Cores.texto2))),
       for (final id in scripts)
         ListTile(
           dense: true,

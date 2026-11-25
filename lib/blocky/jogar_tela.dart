@@ -60,10 +60,10 @@ class _JogarTelaState extends State<JogarTela> {
     final cenasJson = json['cenas'] as List;
     for (var i = 0; i < cenasJson.length; i++) {
       final ce = widget.projeto.cenas[i];
-      (cenasJson[i] as Map<String, dynamic>)['obj'] = {
-        for (final e in ce.celulas.entries)
-          if (itemDe(e.value) != null) e.key: objetoEfetivo(ce, e.key, itemDe(e.value)!),
-      };
+      (cenasJson[i] as Map<String, dynamic>)['objs'] = [
+        for (final o in ce.objetos)
+          if (itemDe(o.v) != null) {'x': o.x, 'y': o.y, 'w': o.w, 'h': o.h, 'v': o.v, ...objetoEfetivo(o, itemDe(o.v)!)},
+      ];
     }
     if (widget.daCena != null) {
       final cenas = cenasJson;
@@ -74,9 +74,9 @@ class _JogarTelaState extends State<JogarTela> {
     // sprites usados (pela celula ou pela imagem escolhida no objeto): prontos viram PNG 16x16, desenhos do usuario vem da biblioteca
     final usados = <int>{};
     for (final ce in widget.projeto.cenas) {
-      for (final e in ce.celulas.entries) {
-        usados.add(e.value);
-        final t = (ce.props[e.key]?['textura'] as num?)?.toInt();
+      for (final o in ce.objetos) {
+        usados.add(o.v);
+        final t = (o.props['textura'] as num?)?.toInt();
         if (t != null) usados.add(t);
       }
     }
