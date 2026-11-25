@@ -4,10 +4,14 @@ import 'icones.dart';
 import 'package:flutter/services.dart';
 
 import 'abas.dart';
+import 'avatares.dart';
 import 'dados.dart';
 import 'detalhes.dart';
 import 'extras.dart';
 import 'jogo.dart';
+import 'nuvem.dart';
+import 'pfp_tela.dart';
+import 'pre_arte.dart';
 import 'widgets.dart';
 
 /// Cor estavel por usuario (para o avatar enquanto nao ha foto).
@@ -68,7 +72,23 @@ class Selos extends StatelessWidget {
 
 void abrirPerfil(BuildContext context, String usuario) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PerfilPublicoTela(usuario: usuario)));
 
-/// Foto de perfil (por enquanto, inicial sobre degrade).
+/// Foto de perfil padrao (sprite pronto) para quem ainda nao escolheu uma.
+class _PfpPadrao extends StatelessWidget {
+  const _PfpPadrao();
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(painter: _PintorPfp(), size: Size.infinite);
+}
+
+class _PintorPfp extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) => desenharPre(c, Offset.zero & s, nomePfpPadrao);
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// Foto de perfil: a escolhida em "Fotos de perfil" ou a padrao.
 class AvatarUsuario extends StatelessWidget {
   const AvatarUsuario(this.usuario, {super.key, this.raio = 18, this.anel = false});
   final String usuario;
@@ -85,11 +105,20 @@ class AvatarUsuario extends StatelessWidget {
         child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(color: Cores.fundo, shape: BoxShape.circle), child: AvatarUsuario(usuario, raio: raio)),
       );
     }
-    return Container(
-      width: raio * 2,
-      height: raio * 2,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: c.first),
-      child: Center(child: Text(usuario[0].toUpperCase(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: raio * 0.95))),
+    return ListenableBuilder(
+      listenable: Avatares.i,
+      builder: (_, __) {
+        final url = Avatares.i.de(usuario);
+        return Container(
+          width: raio * 2,
+          height: raio * 2,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: c.first),
+          clipBehavior: Clip.antiAlias,
+          child: url != null
+              ? Image.network(url, fit: BoxFit.cover, filterQuality: FilterQuality.none, errorBuilder: (_, __, ___) => const _PfpPadrao())
+              : const _PfpPadrao(),
+        );
+      },
     );
   }
 }
@@ -206,7 +235,13 @@ class CabecalhoPerfil extends StatelessWidget {
               child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.black.withAlpha(110), borderRadius: BorderRadius.circular(14)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Ic.camera, size: 15, color: Colors.white), SizedBox(width: 5), Text('Banner', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700))])),
             ),
           ),
-        Positioned(left: 16, bottom: -42, child: AvatarUsuario(usuario, raio: 40, anel: true)),
+        Positioned(
+          left: 16,
+          bottom: -42,
+          child: proprio
+              ? Toque(aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PfpTela())), child: AvatarUsuario(Nuvem.i.usuario ?? usuario, raio: 40, anel: true))
+              : AvatarUsuario(usuario, raio: 40, anel: true),
+        ),
       ]),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),

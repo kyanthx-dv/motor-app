@@ -7,120 +7,72 @@ import 'package:flutter/services.dart';
 import 'icones.dart';
 import 'jogar_tela.dart';
 import 'biblioteca.dart';
+import 'desenho.dart';
 import 'objeto.dart';
+import 'pre_arte.dart';
 import 'cena_config.dart';
 import 'projetos.dart';
 import 'widgets.dart';
 
-enum Arte { grama, terra, pedra, agua, areia, icone }
-
-/// Item da paleta de exemplo (depois vira o catalogo real de assets da engine).
+/// Item da paleta: sprite pronto (pixel art que vem no app), ou desenho do usuario ([assetId]).
 class ItemPaleta {
-  const ItemPaleta(this.nome, this.aba, this.arte, this.cor, [this.icone = Ic.ponto, this.assetId]);
-  final int? assetId; // desenho da biblioteca (aba Meus)
+  const ItemPaleta(this.nome, this.aba, this.cor, [this.assetId]);
+  final int? assetId;
   final String nome;
   final String aba; // Tile | Deco | Ator | Objeto
-  final Arte arte;
   final Color cor;
-  final IconData icone;
 }
 
 const paleta = <ItemPaleta>[
-  ItemPaleta('Grama', 'Tile', Arte.grama, Color(0xFF5DBB2F)),
-  ItemPaleta('Terra', 'Tile', Arte.terra, Color(0xFFB4713A)),
-  ItemPaleta('Pedra', 'Tile', Arte.pedra, Color(0xFF9AA5B1)),
-  ItemPaleta('Água', 'Tile', Arte.agua, Color(0xFF3BA7F0)),
-  ItemPaleta('Areia', 'Tile', Arte.areia, Color(0xFFF2D58A)),
-  ItemPaleta('Árvore', 'Deco', Arte.icone, Color(0xFF2E9E4F), Ic.arvore),
-  ItemPaleta('Flor', 'Deco', Arte.icone, Color(0xFFEC4899), Ic.flor),
-  ItemPaleta('Nuvem', 'Deco', Arte.icone, Color(0xFF94A3B8), Ic.nuvem),
-  ItemPaleta('Herói', 'Ator', Arte.icone, Color(0xFFF59E0B), Ic.rosto),
-  ItemPaleta('Slime', 'Ator', Arte.icone, Color(0xFF22D3EE), Ic.inseto),
-  ItemPaleta('Fantasma', 'Ator', Arte.icone, Color(0xFFA78BFA), Ic.fantasma),
-  ItemPaleta('Baú', 'Objeto', Arte.icone, Color(0xFFB45309), Ic.pacote),
-  ItemPaleta('Moeda', 'Objeto', Arte.icone, Color(0xFFFBBF24), Ic.moeda),
-  ItemPaleta('Bandeira', 'Objeto', Arte.icone, Color(0xFFEF4444), Ic.bandeira),
+  ItemPaleta('Grama', 'Tile', Color(0xFF5DBB2F)),
+  ItemPaleta('Terra', 'Tile', Color(0xFFB4713A)),
+  ItemPaleta('Pedra', 'Tile', Color(0xFF9AA5B1)),
+  ItemPaleta('Água', 'Tile', Color(0xFF3BA7F0)),
+  ItemPaleta('Areia', 'Tile', Color(0xFFF2D58A)),
+  ItemPaleta('Árvore', 'Deco', Color(0xFF2E9E4F)),
+  ItemPaleta('Flor', 'Deco', Color(0xFFEC4899)),
+  ItemPaleta('Nuvem', 'Deco', Color(0xFFF1F3F5)),
+  ItemPaleta('Herói', 'Ator', Color(0xFF1D9BF0)),
+  ItemPaleta('Slime', 'Ator', Color(0xFF23A55A)),
+  ItemPaleta('Fantasma', 'Ator', Color(0xFFE6E8EB)),
+  ItemPaleta('Baú', 'Objeto', Color(0xFFB4713A)),
+  ItemPaleta('Moeda', 'Objeto', Color(0xFFF59E0B)),
+  ItemPaleta('Bandeira', 'Objeto', Color(0xFFF23F43)),
 ];
 
-const _abas = ['Tile', 'Deco', 'Ator', 'Objeto', 'Meus'];
+const abasPaleta = ['Tile', 'Deco', 'Ator', 'Objeto'];
 
-/// Item da paleta para um valor de celula (indice da paleta fixa ou desenho da biblioteca). null = invalido/apagado.
+/// Item para um valor de celula (indice da paleta ou desenho da biblioteca). null = invalido/apagado.
 ItemPaleta? itemDe(int v) {
   if (v >= baseAsset) {
     final a = Biblioteca.i.porId(v - baseAsset);
-    return a == null ? null : ItemPaleta(a.nome, 'Meus', Arte.icone, const Color(0xFFFFFFFF), Ic.ponto, a.id);
+    return a == null ? null : ItemPaleta(a.nome, a.cat, const Color(0xFFFFFFFF), a.id);
   }
   return v >= 0 && v < paleta.length ? paleta[v] : null;
 }
 
-/// Desenha um item dentro de [r]. Tiles sao desenhados por codigo (sem arquivo de imagem), encaixam sem frestas.
+/// Desenha um item dentro de [r] (pixels nitidos).
 void pintarItem(Canvas c, Rect r, ItemPaleta it) {
   final aid = it.assetId;
   if (aid != null) {
     final im = Biblioteca.i.imagem(aid);
-    if (im != null) c.drawImageRect(im, Rect.fromLTWH(0, 0, im.width.toDouble(), im.height.toDouble()), r, Paint()..filterQuality = FilterQuality.none);
+    if (im != null) c.drawImageRect(im, Rect.fromLTWH(0, 0, im.width.toDouble(), im.height.toDouble()), r, Paint()..filterQuality = FilterQuality.none..isAntiAlias = false);
     return;
   }
-  final u = r.width / 10; // unidade de 1/10 da celula
-  switch (it.arte) {
-    case Arte.terra:
-    case Arte.grama:
-      c.drawRect(r, Paint()..color = const Color(0xFFB4713A));
-      final manchas = Paint()..color = const Color(0xFF8E5528);
-      for (final p in const [Offset(2, 5), Offset(6, 4), Offset(4, 8), Offset(8, 7), Offset(1, 9), Offset(7, 9.2)]) {
-        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(r.left + p.dx * u, r.top + p.dy * u, 1.4 * u, 0.8 * u), Radius.circular(u * 0.3)), manchas);
-      }
-      if (it.arte == Arte.grama) {
-        c.drawRect(Rect.fromLTWH(r.left, r.top, r.width, 2.6 * u), Paint()..color = const Color(0xFF5DBB2F));
-        final p = Paint()..color = const Color(0xFF5DBB2F);
-        for (var i = 0; i < 5; i++) {
-          c.drawCircle(Offset(r.left + (i * 2 + 1) * u, r.top + 2.6 * u), 1 * u, p);
-        }
-        c.drawRect(Rect.fromLTWH(r.left, r.top, r.width, 0.7 * u), Paint()..color = const Color(0xFF86D94F));
-      }
-    case Arte.pedra:
-      c.drawRect(r, Paint()..color = it.cor);
-      final l = Paint()
-        ..color = const Color(0xFF6B7684)
-        ..strokeWidth = u * 0.35;
-      c.drawLine(Offset(r.left, r.top + 5 * u), Offset(r.right, r.top + 5 * u), l);
-      c.drawLine(Offset(r.left + 5 * u, r.top), Offset(r.left + 5 * u, r.top + 5 * u), l);
-      c.drawLine(Offset(r.left + 2.5 * u, r.top + 5 * u), Offset(r.left + 2.5 * u, r.bottom), l);
-      c.drawLine(Offset(r.left + 7.5 * u, r.top + 5 * u), Offset(r.left + 7.5 * u, r.bottom), l);
-    case Arte.agua:
-      c.drawRect(r, Paint()..color = it.cor);
-      final w = Paint()
-        ..color = Colors.white.withAlpha(200)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = u * 0.5
-        ..strokeCap = StrokeCap.round;
-      for (final y in const [3.0, 7.0]) {
-        final path = Path()
-          ..moveTo(r.left + 1 * u, r.top + y * u)
-          ..quadraticBezierTo(r.left + 3 * u, r.top + (y - 1.2) * u, r.left + 5 * u, r.top + y * u)
-          ..quadraticBezierTo(r.left + 7 * u, r.top + (y + 1.2) * u, r.left + 9 * u, r.top + y * u);
-        c.drawPath(path, w);
-      }
-    case Arte.areia:
-      c.drawRect(r, Paint()..color = it.cor);
-      final d = Paint()..color = const Color(0xFFD9B865);
-      for (final p in const [Offset(2, 2), Offset(6, 3), Offset(4, 6), Offset(8, 7), Offset(2, 8)]) {
-        c.drawCircle(Offset(r.left + p.dx * u, r.top + p.dy * u), 0.45 * u, d);
-      }
-    case Arte.icone:
-      final centro = r.center;
-      c.drawCircle(centro, r.width * 0.42, Paint()..color = it.cor);
-      c.drawCircle(centro, r.width * 0.42, Paint()
-        ..color = Colors.black.withAlpha(90)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = u * 0.35);
-      final tp = TextPainter(
-        text: TextSpan(text: String.fromCharCode(it.icone.codePoint), style: TextStyle(fontFamily: it.icone.fontFamily, package: it.icone.fontPackage, fontSize: r.width * 0.55, color: Colors.white)),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(c, centro - Offset(tp.width / 2, tp.height / 2));
+  if (preArtes.containsKey(it.nome)) {
+    desenharPre(c, r, it.nome);
+  } else {
+    c.drawRect(r, Paint()..color = it.cor);
   }
 }
+
+/// Valores de celula de todos os sprites (prontos + do usuario), na ordem da paleta; [cat] filtra por categoria.
+List<int> valoresPaleta({String? cat}) => [
+      for (var i = 0; i < paleta.length; i++)
+        if (cat == null || paleta[i].aba == cat) i,
+      for (final a in Biblioteca.i.itens)
+        if (a.cat != 'PFP' && (cat == null || a.cat == cat)) baseAsset + a.id,
+    ];
 
 class _Miniatura extends CustomPainter {
   _Miniatura(this.it);
@@ -276,6 +228,52 @@ class _CenaTelaState extends State<CenaTela> {
 
   bool get _temSel => _selX != null && _selY != null && c.celulas.containsKey('$_selX,$_selY');
 
+  /// Trocar a imagem do objeto selecionado: escolhe entre todos os sprites (prontos e seus).
+  Future<void> _escolherSprite() async {
+    final k = '$_selX,$_selY';
+    final proprio = c.celulas[k];
+    final v = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Cores.cartao,
+      isScrollControlled: true,
+      builder: (ctx) => ListenableBuilder(
+        listenable: Biblioteca.i,
+        builder: (ctx, _) => SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Padding(padding: EdgeInsets.fromLTRB(16, 14, 16, 8), child: Text('Imagem do objeto', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+              Flexible(
+                child: GridView.count(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  crossAxisCount: 5,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  children: [
+                    Toque(
+                      aoTocar: () => Navigator.of(ctx).push(MaterialPageRoute<void>(builder: (_) => const NovoDesenhoTela())),
+                      child: Container(
+                        decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: Cores.acento, width: 1.5)),
+                        child: const Center(child: Icon(Icons.add_rounded, color: Cores.acento, size: 28)),
+                      ),
+                    ),
+                    for (final i in valoresPaleta())
+                      Toque(
+                        aoTocar: () => Navigator.pop(ctx, i),
+                        child: Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12)), child: CustomPaint(painter: _Miniatura(itemDe(i) ?? paleta[0]))),
+                      ),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+    if (v != null) _mudarProp('textura', v == proprio ? null : v);
+  }
+
   void _mudarProp(String chave, Object? valor) {
     final k = '$_selX,$_selY';
     final p = c.props.putIfAbsent(k, () => {});
@@ -425,12 +423,13 @@ class _CenaTelaState extends State<CenaTela> {
 
   @override
   Widget build(BuildContext context) {
-    final itens = _abas[_aba] == 'Meus' ? [for (final a in Biblioteca.i.itens) baseAsset + a.id] : [for (var i = 0; i < paleta.length; i++) if (paleta[i].aba == _abas[_aba]) i];
+    final itens = valoresPaleta(cat: abasPaleta[_aba]);
     final grande = _altPainel > 300;
     final objK = _temSel ? '$_selX,$_selY' : null;
     final objIdx = objK == null ? null : c.celulas[objK];
     final objItem = objIdx == null ? null : itemDe(objIdx);
     final objDados = objItem == null ? null : objetoEfetivo(c, objK!, objItem);
+    final objVisual = objDados == null ? null : (itemDe(objDados['textura'] as int? ?? objIdx!) ?? objItem);
     Widget celula(int i) => Toque(
           aoTocar: () => setState(() {
             _sel = i;
@@ -441,6 +440,13 @@ class _CenaTelaState extends State<CenaTela> {
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: _sel == i && !_apagar ? azulEditor : Colors.transparent, width: 2.5)),
             child: CustomPaint(painter: _Miniatura(itemDe(i) ?? paleta[0])),
+          ),
+        );
+    Widget mais() => Toque(
+          aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => NovoDesenhoTela(categoria: abasPaleta[_aba]))),
+          child: Container(
+            decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: Cores.acento, width: 1.5)),
+            child: const Center(child: Icon(Icons.add_rounded, color: Cores.acento, size: 28)),
           ),
         );
     return Scaffold(
@@ -578,7 +584,7 @@ class _CenaTelaState extends State<CenaTela> {
                   height: 52,
                   child: Row(children: [
                     const SizedBox(width: 14),
-                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(objItem ?? itemDe(_sel) ?? paleta[0]))),
+                    SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(objVisual ?? itemDe(_sel) ?? paleta[0]))),
                     const SizedBox(width: 10),
                     Flexible(child: Text(objItem == null ? (itemDe(_sel) ?? paleta[0]).nome : '${objDados!['nome']}  ·  ($_selX, $_selY)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
                     const Spacer(),
@@ -594,6 +600,8 @@ class _CenaTelaState extends State<CenaTela> {
                 Expanded(
                   child: PainelObjeto(
                     item: objItem,
+                    imagem: CustomPaint(painter: _Miniatura(objVisual ?? objItem)),
+                    aoTrocarImagem: _escolherSprite,
                     dados: objDados!,
                     x: _selX!,
                     y: _selY!,
@@ -610,7 +618,7 @@ class _CenaTelaState extends State<CenaTela> {
                 SizedBox(
                   height: 34,
                   child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: [
-                    for (var i = 0; i < _abas.length; i++)
+                    for (var i = 0; i < abasPaleta.length; i++)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: Toque(
@@ -620,7 +628,7 @@ class _CenaTelaState extends State<CenaTela> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(color: _aba == i ? azulEditor : Cores.cartao2, borderRadius: BorderRadius.circular(17)),
-                            child: Text(_abas[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _aba == i ? Colors.white : Cores.texto2)),
+                            child: Text(abasPaleta[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _aba == i ? Colors.white : Cores.texto2)),
                           ),
                         ),
                       ),
@@ -633,12 +641,12 @@ class _CenaTelaState extends State<CenaTela> {
                           crossAxisCount: 6,
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 8,
-                          children: [for (final i in itens) celula(i)],
+                          children: [mais(), for (final i in itens) celula(i)],
                         )
                       : ListView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                          children: [for (final i in itens) Padding(padding: const EdgeInsets.only(right: 8), child: AspectRatio(aspectRatio: 1, child: celula(i)))],
+                          children: [Padding(padding: const EdgeInsets.only(right: 8), child: AspectRatio(aspectRatio: 1, child: mais())), for (final i in itens) Padding(padding: const EdgeInsets.only(right: 8), child: AspectRatio(aspectRatio: 1, child: celula(i)))],
                         ),
                 ),
               ],
@@ -670,7 +678,7 @@ class _CenaPainter extends CustomPainter {
     final ordem = c.celulas.keys.toList()..sort((a, b) => camadaDe(a).compareTo(camadaDe(b)));
     for (final k in ordem) {
       final i = c.celulas[k]!;
-      final item = itemDe(i);
+      final item = itemDe((c.props[k]?['textura'] as num?)?.toInt() ?? i) ?? itemDe(i);
       if (item == null) continue;
       final p = k.split(',');
       final x = int.parse(p[0]), y = int.parse(p[1]);

@@ -341,6 +341,21 @@ class Nuvem extends ChangeNotifier {
     return true;
   }
 
+  // ------------------------------------------------------------ foto de perfil
+  Future<Map<String, String?>> avataresDe(List<String> usuarios) async {
+    final lista = usuarios.map(Uri.encodeQueryComponent).join(',');
+    final l = await _req('GET', '/rest/v1/perfis?usuario=in.($lista)&select=usuario,avatar', auth: logado) as List;
+    return {for (final e in l) (e as Map)['usuario'] as String: e['avatar'] as String?};
+  }
+
+  /// Envia o PNG e passa a ser a foto do perfil. [arquivo] null = voltar para a padrao.
+  Future<String?> definirAvatar(File? arquivo) async {
+    if (!logado) throw ErroNuvem('Entre na sua conta para trocar a foto.');
+    final url = arquivo == null ? null : await enviarMidia(arquivo);
+    await _req('PATCH', '/rest/v1/perfis?id=eq.$usuarioId', corpo: {'avatar': url}, extra: {'Prefer': 'return=minimal'});
+    return url;
+  }
+
   // ------------------------------------------------------------ notificacoes
   /// Contador do sino (nao lidas). Atualizado por [atualizarNaoLidas].
   final naoLidas = ValueNotifier<int>(0);

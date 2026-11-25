@@ -13,14 +13,15 @@ import 'desenho_nucleo.dart';
 const int baseAsset = 100000;
 
 class AssetSalvo {
-  AssetSalvo({required this.id, required this.nome, required this.l, required this.a, required this.criadoMs});
+  AssetSalvo({required this.id, required this.nome, required this.l, required this.a, required this.criadoMs, this.cat = 'Objeto'});
+  final String cat; // Tile | Deco | Ator | Objeto | PFP
   final int id;
   String nome;
   final int l, a;
   final int criadoMs;
 
-  Map<String, dynamic> toJson() => {'id': id, 'nome': nome, 'l': l, 'a': a, 'criado': criadoMs};
-  static AssetSalvo deJson(Map<String, dynamic> j) => AssetSalvo(id: j['id'] as int, nome: j['nome'] as String, l: j['l'] as int, a: j['a'] as int, criadoMs: j['criado'] as int);
+  Map<String, dynamic> toJson() => {'id': id, 'nome': nome, 'l': l, 'a': a, 'criado': criadoMs, 'cat': cat};
+  static AssetSalvo deJson(Map<String, dynamic> j) => AssetSalvo(id: j['id'] as int, nome: j['nome'] as String, l: j['l'] as int, a: j['a'] as int, criadoMs: j['criado'] as int, cat: (j['cat'] as String?) ?? 'Objeto');
 }
 
 /// Biblioteca de desenhos do usuario (arquivos na pasta do app): um .json (camadas) e um .png (resultado) por desenho.
@@ -75,9 +76,9 @@ class Biblioteca extends ChangeNotifier {
   }
 
   /// Registra um desenho novo e devolve o item (ainda sem arquivos: use [salvar]).
-  Future<AssetSalvo> criar(Documento d) async {
+  Future<AssetSalvo> criar(Documento d, String cat) async {
     await carregar();
-    final a = AssetSalvo(id: _proximo++, nome: d.config.nome, l: d.l, a: d.a, criadoMs: DateTime.now().millisecondsSinceEpoch);
+    final a = AssetSalvo(id: _proximo++, nome: d.config.nome, l: d.l, a: d.a, criadoMs: DateTime.now().millisecondsSinceEpoch, cat: cat);
     itens.insert(0, a);
     await salvar(a, d);
     return a;
@@ -116,6 +117,9 @@ class Biblioteca extends ChangeNotifier {
     await _gravarIndice();
     notifyListeners();
   }
+
+  /// Arquivo PNG do desenho (para enviar como foto de perfil).
+  Future<File> arquivoPng(int id) async => File('${(await _pasta()).path}/$id.png');
 
   Future<Uint8List?> pngBytes(int id) async {
     final f = File('${(await _pasta()).path}/$id.png');

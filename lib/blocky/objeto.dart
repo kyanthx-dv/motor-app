@@ -30,14 +30,17 @@ Map<String, dynamic> objetoEfetivo(Cena c, String k, ItemPaleta it) {
     'camada': (p['camada'] as num?)?.toInt() ?? 0,
     'solido': (p['solido'] as bool?) ?? solidoPadrao(it),
     'visivel': (p['visivel'] as bool?) ?? true,
+    'textura': (p['textura'] as num?)?.toInt(),
     'scripts': [for (final s in ((p['scripts'] as List?) ?? scriptsPadrao(it))) s as String],
   };
 }
 
 /// Painel que aparece no lugar da paleta enquanto um objeto esta selecionado.
 class PainelObjeto extends StatelessWidget {
-  const PainelObjeto({super.key, required this.item, required this.dados, required this.x, required this.y, required this.aoMudar, required this.aoRestaurar});
+  const PainelObjeto({super.key, required this.item, required this.imagem, required this.aoTrocarImagem, required this.dados, required this.x, required this.y, required this.aoMudar, required this.aoRestaurar});
   final ItemPaleta item;
+  final Widget imagem; // sprite atual do objeto
+  final VoidCallback aoTrocarImagem;
   final Map<String, dynamic> dados; // resultado de objetoEfetivo
   final int x, y;
   final void Function(String chave, Object? valor) aoMudar;
@@ -51,6 +54,17 @@ class PainelObjeto extends StatelessWidget {
     final scripts = (dados['scripts'] as List).cast<String>();
     final livres = [for (final id in scriptsDisponiveis.keys) if (!scripts.contains(id)) id];
     return ListView(padding: const EdgeInsets.only(bottom: 16), children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Row(children: [
+          Toque(
+            aoTocar: aoTrocarImagem,
+            child: Container(width: 64, height: 64, padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12), border: Border.all(color: Cores.acento, width: 1.5)), child: imagem),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(child: Text('Toque na imagem para trocar. Para animar (várias imagens), em breve.', style: TextStyle(fontSize: 12, color: Cores.texto2))),
+        ]),
+      ),
       _secao('PRIORIDADES'),
       ListTile(
         dense: true,
