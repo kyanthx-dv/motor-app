@@ -14,8 +14,33 @@ enum Fisica { plataforma, rpg }
 
 String rotuloFisica(Fisica f) => f == Fisica.plataforma ? 'Plataforma' : 'RPG';
 
+/// Um objeto colocado no mapa. Varios podem ocupar a mesma celula (exceto Tile sobre Tile).
+class ObjetoCena {
+  ObjetoCena({required this.id, required this.v, required this.x, required this.y, this.w = 1, this.h = 1, Map<String, dynamic>? props}) : props = props ?? {};
+  final int id;
+  int v; // indice da paleta ou baseAsset + id do desenho
+  int x, y; // celula do canto inferior esquerdo (origem embaixo-esquerda)
+  int w, h; // tamanho em celulas
+  /// camada, solido, visivel, scripts, nome, textura (ausente = padrao do tipo).
+  Map<String, dynamic> props;
+
+  Map<String, dynamic> toJson() => {'id': id, 'v': v, 'x': x, 'y': y, 'w': w, 'h': h, 'p': props};
+
+  static ObjetoCena fromJson(Map<String, dynamic> j) => ObjetoCena(
+        id: (j['id'] as num).toInt(),
+        v: (j['v'] as num).toInt(),
+        x: (j['x'] as num).toInt(),
+        y: (j['y'] as num).toInt(),
+        w: ((j['w'] as num?) ?? 1).toInt().clamp(1, mapaMax),
+        h: ((j['h'] as num?) ?? 1).toInt().clamp(1, mapaMax),
+        props: Map<String, dynamic>.from((j['p'] as Map?) ?? {}),
+      );
+
+  ObjetoCena copia(int novoId) => ObjetoCena(id: novoId, v: v, x: x, y: y, w: w, h: h, props: Map<String, dynamic>.from(props));
+}
+
 class Cena {
-  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, Map<String, int>? celulas, this.inicial = false, this.px = -1, this.py = -1, Map<String, Map<String, dynamic>>? props}) : celulas = celulas ?? {}, props = props ?? {};
+  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, List<ObjetoCena>? objetos, this.inicial = false, this.px = -1, this.py = -1}) : objetos = objetos ?? [];
   String nome;
   Fisica fisica;
   int largura;
@@ -25,27 +50,47 @@ class Cena {
   /// Posicao do cartao no tabuleiro de cenas (negativo = ainda nao posicionado).
   double px;
   double py;
-  /// "x,y" -> indice do item da paleta (origem embaixo-esquerda, como no editor de PC).
-  Map<String, int> celulas;
-  /// Propriedades por objeto (chave "x,y"): camada (prioridade de desenho), solido, visivel, scripts, nome. Ausente = padrao do tipo.
-  Map<String, Map<String, dynamic>> props;
+  /// Objetos do mapa (origem embaixo-esquerda, como no editor de PC).
+  final List<ObjetoCena> objetos;
+  int _proxId = 1;
+  int novoId() => _proxId++;
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'cel': celulas, 'props': props};
+  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'objs': [for (final o in objetos) o.toJson()]};
 
-  static Cena fromJson(Map<String, dynamic> j) => Cena(
-        nome: (j['nome'] as String?) ?? 'Cena',
-        fisica: (j['fisica'] == 'rpg') ? Fisica.rpg : Fisica.plataforma,
-        largura: ((j['l'] as num?) ?? 16).toInt().clamp(mapaMin, mapaMax),
-        altura: ((j['a'] as num?) ?? 12).toInt().clamp(mapaMin, mapaMax),
-        corFundo: ((j['cor'] as num?) ?? 0xFF4DD0FF).toInt(),
-        inicial: (j['ini'] as bool?) ?? false,
-        px: ((j['px'] as num?) ?? -1).toDouble(),
-        py: ((j['py'] as num?) ?? -1).toDouble(),
-        celulas: {for (final e in ((j['cel'] as Map?) ?? {}).entries) e.key as String: (e.value as num).toInt()},
-        props: {for (final e in ((j['props'] as Map?) ?? {}).entries) e.key as String: Map<String, dynamic>.from(e.value as Map)},
-      );
+  static Cena fromJson(Map<String, dynamic> j) {
+    final c = Cena(
+      nome: (j['nome'] as String?) ?? 'Cena',
+      fisica: (j['fisica'] == 'rpg') ? Fisica.rpg : Fisica.plataforma,
+      largura: ((j['l'] as num?) ?? 16).toInt().clamp(mapaMin, mapaMax),
+      altura: ((j['a'] as num?) ?? 12).toInt().clamp(mapaMin, mapaMax),
+      corFundo: ((j['cor'] as num?) ?? 0xFF4DD0FF).toInt(),
+      inicial: (j['ini'] as bool?) ?? false,
+      px: ((j['px'] as num?) ?? -1).toDouble(),
+      py: ((j['py'] as num?) ?? -1).toDouble(),
+    );
+    for (final o in ((j['objs'] as List?) ?? const [])) {
+      final ob = ObjetoCena.fromJson(Map<String, dynamic>.from(o as Map));
+      c.objetos.add(ob);
+      if (ob.id >= c._proxId) c._proxId = ob.id + 1;
+    }
+    // formato antigo: uma celula = um objeto ("x,y" -> valor, props por celula)
+    final cel = (j['cel'] as Map?) ?? const {};
+    final pr = (j['props'] as Map?) ?? const {};
+    for (final e in cel.entries) {
+      final p = (e.key as String).split(',');
+      final extra = pr[e.key];
+      c.objetos.add(ObjetoCena(id: c.novoId(), v: (e.value as num).toInt(), x: int.parse(p[0]), y: int.parse(p[1]), props: extra is Map ? Map<String, dynamic>.from(extra) : null));
+    }
+    return c;
+  }
 
-  Cena copia() => Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, celulas: Map.of(celulas), props: {for (final e in props.entries) e.key: Map<String, dynamic>.from(e.value)}, px: px + 30, py: py + 30);
+  Cena copia() {
+    final c = Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, px: px + 30, py: py + 30);
+    for (final o in objetos) {
+      c.objetos.add(o.copia(c.novoId()));
+    }
+    return c;
+  }
 }
 
 class Projeto {

@@ -102,31 +102,46 @@ class CenaTela extends StatefulWidget {
 
 class _CenaTelaState extends State<CenaTela> {
   static const double _cs = 40; // celula em unidades do mundo
+  static const double _folga = 10; // deslocamento maximo (px) para ainda ser um "toque certeiro"
 
   final _versao = ValueNotifier<int>(0);
   bool _apagar = false;
-  // toque = selecionar; segurar = comecar a pintar/apagar; 1 dedo arrastando = mover o mapa
+  // toque certeiro = cria 1 objeto (ou seleciona); segurar parado = pintar/apagar; arrastar = mover o mapa
   Timer? _seg;
   bool _pintando = false;
   bool _mexeu = false;
-  Offset _ini = Offset.zero;
-  int? _selX;
-  int? _selY;
+  // rastreio bruto dos dedos (nao depende do reconhecedor de gestos): posicao/tempo do toque e distancia maxima percorrida
+  final _relogio = Stopwatch();
+  int _dedos = 0;
+  bool _multi = false;
+  Offset _baixo = Offset.zero;
+  double _maxDist = 0;
+
+  ObjetoCena? _so; // objeto selecionado
   int _aba = 0;
   int _sel = 0;
   double _altPainel = 210; // altura do painel (puxavel)
   static const _alturas = [52.0, 210.0, 400.0];
-  int? _ultimo;
+  bool _painelTam = false; // painel de tamanho/posicao aberto
+
   // arrastar o objeto selecionado para outra celula
   bool _movendo = false;
-  (int, int)? _destino;
+  (int, int)? _destino; // canto inferior esquerdo proposto
+  (int, int) _pega = (0, 0); // celula agarrada dentro do objeto
+  bool _destinoOk = true;
 
-  // desfazer / refazer: cada traco guarda o valor anterior das celulas tocadas
-  final _desfazer = <Map<String, int?>>[];
-  final _refazer = <Map<String, int?>>[];
-  Map<String, int?> _traco = {};
+  // ordem de desenho em cache e indice de tiles (1 por celula)
+  List<ObjetoCena> _ordem = [];
+  bool _ordemSuja = true;
+  final _tiles = <int, ObjetoCena>{};
+  final _visitadas = <int>{};
 
-  // camera (zoom + deslocamento), controlada a mao: 1 dedo pinta, 2 dedos movem/zoom
+  // desfazer / refazer por foto da lista de objetos (max 30)
+  final _desfazer = <List<ObjetoCena>>[];
+  final _refazer = <List<ObjetoCena>>[];
+  bool _snap = false; // ja guardou o desfazer neste gesto
+
+  // camera (zoom + deslocamento), controlada a mao: 1 dedo age, 2 dedos movem/zoom
   double _esc = 1;
   Offset _desl = Offset.zero;
   bool _ajustou = false;
@@ -139,6 +154,8 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _aoMudarBiblioteca() {
     if (mounted) {
+      _reindex();
+      _ordemSuja = true;
       _versao.value++;
       setState(() {});
     }
@@ -147,8 +164,9 @@ class _CenaTelaState extends State<CenaTela> {
   @override
   void initState() {
     super.initState();
-    Biblioteca.i.carregar();
+    Biblioteca.i.carregar().then((_) => _aoMudarBiblioteca());
     Biblioteca.i.addListener(_aoMudarBiblioteca);
+    _reindex();
   }
 
   @override
@@ -167,55 +185,130 @@ class _CenaTelaState extends State<CenaTela> {
     _ajustou = true;
   }
 
-  void _pintarEm(Offset p) {
-    final w = (p - _desl) / _esc;
-    final x = (w.dx / _cs).floor();
-    final y = c.altura - 1 - (w.dy / _cs).floor();
-    if (w.dx < 0 || w.dy < 0 || x >= c.largura || y < 0 || y >= c.altura) return; // limite do mapa
-    final chave = x * 100000 + y;
-    if (chave == _ultimo) return;
-    _ultimo = chave;
-    final k = '$x,$y';
-    final antes = c.celulas[k];
-    final depois = _apagar ? null : _sel;
-    if (antes == depois) return;
-    _traco.putIfAbsent(k, () => antes);
-    c.props.remove(k);
-    if (depois == null) {
-      c.celulas.remove(k);
-    } else {
-      c.celulas[k] = depois;
+  // ---------- modelo ----------
+  bool _ehTile(ObjetoCena o) => itemDe(o.v)?.aba == 'Tile';
+
+  void _reindex() {
+    _tiles.clear();
+    for (final o in c.objetos) {
+      if (_ehTile(o)) _tiles[o.x * 1000 + o.y] = o;
     }
-    _versao.value++;
   }
 
-  /// Aplica um conjunto de valores e devolve o inverso.
-  Map<String, int?> _aplicar(Map<String, int?> m) {
-    final inv = <String, int?>{};
-    m.forEach((k, v) {
-      inv[k] = c.celulas[k];
-      if (v == null) {
-        c.celulas.remove(k);
-      } else {
-        c.celulas[k] = v;
+  int _chaveOrdem(ObjetoCena o) => (_ehTile(o) ? 0 : 1) + ((o.props['camada'] as num?)?.toInt() ?? 0);
+
+  /// Ordem de desenho (tile antes de objeto, depois camada, depois criacao); so recalcula quando algo mudou.
+  List<ObjetoCena> get ordem {
+    if (_ordemSuja) {
+      final ks = {for (final o in c.objetos) o: _chaveOrdem(o)};
+      _ordem = [...c.objetos]..sort((a, b) {
+          final d = ks[a]!.compareTo(ks[b]!);
+          return d != 0 ? d : a.id.compareTo(b.id);
+        });
+      _ordemSuja = false;
+    }
+    return _ordem;
+  }
+
+  static bool _contem(ObjetoCena o, int x, int y) => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h;
+
+  ObjetoCena? _noTopo(int x, int y) {
+    final l = ordem;
+    for (var i = l.length - 1; i >= 0; i--) {
+      if (_contem(l[i], x, y)) return l[i];
+    }
+    return null;
+  }
+
+  ObjetoCena? _naoTileEm(int x, int y) {
+    final l = ordem;
+    for (var i = l.length - 1; i >= 0; i--) {
+      if (_contem(l[i], x, y) && !_ehTile(l[i])) return l[i];
+    }
+    return null;
+  }
+
+  List<ObjetoCena> _copiaLista() => [for (final o in c.objetos) o.copia(o.id)];
+
+  /// Guarda o estado para desfazer (uma vez por gesto).
+  void _marcar() {
+    if (_snap) return;
+    _snap = true;
+    _desfazer.add(_copiaLista());
+    if (_desfazer.length > 30) _desfazer.removeAt(0);
+    _refazer.clear();
+  }
+
+  void _restaurar(List<ObjetoCena> l) {
+    final id = _so?.id;
+    c.objetos
+      ..clear()
+      ..addAll([for (final o in l) o.copia(o.id)]);
+    _so = null;
+    if (id != null) {
+      for (final o in c.objetos) {
+        if (o.id == id) _so = o;
       }
-    });
+    }
+    if (_so == null) _painelTam = false;
+    _reindex();
+    _ordemSuja = true;
     _versao.value++;
-    return inv;
   }
 
   void _undo() {
     if (_desfazer.isEmpty) return;
-    _refazer.add(_aplicar(_desfazer.removeLast()));
+    _refazer.add(_copiaLista());
+    _restaurar(_desfazer.removeLast());
     setState(() {});
     RepositorioProjetos.instancia.salvar();
   }
 
   void _redo() {
     if (_refazer.isEmpty) return;
-    _desfazer.add(_aplicar(_refazer.removeLast()));
+    _desfazer.add(_copiaLista());
+    _restaurar(_refazer.removeLast());
     setState(() {});
     RepositorioProjetos.instancia.salvar();
+  }
+
+  /// Cria 1 objeto na celula (Tile nao pode ir sobre outro Tile). Devolve se criou.
+  bool _colocar(int x, int y) {
+    final it = itemDe(_sel);
+    if (it == null) return false;
+    final tile = it.aba == 'Tile';
+    if (tile && _tiles.containsKey(x * 1000 + y)) return false;
+    if (!tile) {
+      final ex = _naoTileEm(x, y);
+      if (ex != null && ex.v == _sel && ex.x == x && ex.y == y && ex.w == 1 && ex.h == 1) return false; // nao empilha copia identica
+    }
+    _marcar();
+    final o = ObjetoCena(id: c.novoId(), v: _sel, x: x, y: y);
+    c.objetos.add(o);
+    if (tile) _tiles[x * 1000 + y] = o;
+    _ordemSuja = true;
+    _versao.value++;
+    return true;
+  }
+
+  /// Apaga o objeto de cima da celula.
+  bool _apagarEm(int x, int y) {
+    final o = _noTopo(x, y);
+    if (o == null) return false;
+    _marcar();
+    _remover(o);
+    return true;
+  }
+
+  void _remover(ObjetoCena o) {
+    c.objetos.remove(o);
+    if (_ehTile(o)) _tiles.remove(o.x * 1000 + o.y);
+    if (identical(_so, o)) {
+      _so = null;
+      _painelTam = false;
+    }
+    _ordemSuja = true;
+    _versao.value++;
   }
 
   (int, int)? _celulaEm(Offset p) {
@@ -226,12 +319,71 @@ class _CenaTelaState extends State<CenaTela> {
     return (x, y);
   }
 
-  bool get _temSel => _selX != null && _selY != null && c.celulas.containsKey('$_selX,$_selY');
+  (int, int) _celulaPrender(Offset p) {
+    final w = (p - _desl) / _esc;
+    final x = (w.dx / _cs).floor().clamp(0, c.largura - 1).toInt();
+    final y = (c.altura - 1 - (w.dy / _cs).floor()).clamp(0, c.altura - 1).toInt();
+    return (x, y);
+  }
+
+  void _pintarEm(Offset p) {
+    final cel = _celulaEm(p);
+    if (cel == null) return;
+    if (!_visitadas.add(cel.$1 * 1000 + cel.$2)) return; // 1 vez por celula em cada traco
+    if (_apagar) {
+      _apagarEm(cel.$1, cel.$2);
+    } else {
+      _colocar(cel.$1, cel.$2);
+    }
+  }
+
+  /// Toque certeiro numa celula: apagar / selecionar / criar 1 objeto.
+  void _tocar(Offset p) {
+    final cel = _celulaEm(p);
+    if (cel == null) {
+      _so = null;
+      _painelTam = false;
+      _versao.value++;
+      return;
+    }
+    final x = cel.$1, y = cel.$2;
+    if (_apagar) {
+      _apagarEm(x, y);
+      RepositorioProjetos.instancia.salvar();
+      return;
+    }
+    final item = itemDe(_sel);
+    final ehTileAtivo = item?.aba == 'Tile';
+    final nt = _naoTileEm(x, y);
+    final tl = _tiles[x * 1000 + y];
+    ObjetoCena? alvo = nt; // objetos (nao tile) tem prioridade de selecao
+    if (alvo == null && tl != null && (ehTileAtivo || item == null)) alvo = tl; // tile so se o item ativo tambem e tile
+    if (alvo != null) {
+      _so = alvo;
+      _painelTam = false;
+      if (_altPainel < 100) _altPainel = _alturas[1];
+      _versao.value++;
+      return;
+    }
+    if (_so != null) {
+      _so = null; // havia selecao: o toque so a limpa (nao cria sem querer)
+      _painelTam = false;
+      _versao.value++;
+      return;
+    }
+    if (_colocar(x, y)) RepositorioProjetos.instancia.salvar();
+  }
+
+  bool _destinoValido(ObjetoCena o, int x, int y) {
+    if (!_ehTile(o)) return true;
+    final t = _tiles[x * 1000 + y];
+    return t == null || identical(t, o);
+  }
 
   /// Trocar a imagem do objeto selecionado: escolhe entre todos os sprites (prontos e seus).
   Future<void> _escolherSprite() async {
-    final k = '$_selX,$_selY';
-    final proprio = c.celulas[k];
+    final o = _so;
+    if (o == null) return;
     final v = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: Cores.cartao,
@@ -271,60 +423,126 @@ class _CenaTelaState extends State<CenaTela> {
         ),
       ),
     );
-    if (v != null) _mudarProp('textura', v == proprio ? null : v);
+    if (v != null) _mudarProp('textura', v == o.v ? null : v);
   }
 
   void _mudarProp(String chave, Object? valor) {
-    final k = '$_selX,$_selY';
-    final p = c.props.putIfAbsent(k, () => {});
-    if (valor == null) {
-      p.remove(chave);
-    } else {
-      p[chave] = valor;
+    final o = _so;
+    if (o == null) return;
+    if (chave != 'nome') {
+      _snap = false;
+      _marcar();
+      _snap = false;
     }
-    if (p.isEmpty) c.props.remove(k);
+    if (valor == null) {
+      o.props.remove(chave);
+    } else {
+      o.props[chave] = valor;
+    }
+    if (chave == 'camada') _ordemSuja = true;
     RepositorioProjetos.instancia.salvar();
     setState(() {});
     _versao.value++;
   }
 
+  void _restaurarPadrao() {
+    final o = _so;
+    if (o == null) return;
+    _snap = false;
+    _marcar();
+    _snap = false;
+    o.props.clear();
+    _ordemSuja = true;
+    RepositorioProjetos.instancia.salvar();
+    setState(() {});
+    _versao.value++;
+  }
+
+  /// Ajusta W/H/X/Y do objeto selecionado dentro dos limites do mapa (Tile nao redimensiona).
+  void _ajTam(String campo, int d) {
+    final o = _so;
+    if (o == null) return;
+    final tile = _ehTile(o);
+    var w = o.w, h = o.h, x = o.x, y = o.y;
+    switch (campo) {
+      case 'w':
+        if (tile) return;
+        w = (w + d).clamp(1, c.largura - x).toInt();
+      case 'h':
+        if (tile) return;
+        h = (h + d).clamp(1, c.altura - y).toInt();
+      case 'x':
+        x = (x + d).clamp(0, c.largura - w).toInt();
+      case 'y':
+        y = (y + d).clamp(0, c.altura - h).toInt();
+    }
+    if (w == o.w && h == o.h && x == o.x && y == o.y) return;
+    if (!_destinoValido(o, x, y)) return;
+    _snap = false;
+    _marcar();
+    _snap = false;
+    o.w = w;
+    o.h = h;
+    o.x = x;
+    o.y = y;
+    if (tile) _reindex();
+    RepositorioProjetos.instancia.salvar();
+    _versao.value++;
+  }
+
+  // ---------- gestos ----------
+  void _pBaixo(PointerDownEvent e) {
+    _dedos++;
+    if (_dedos == 1) {
+      _baixo = e.localPosition;
+      _maxDist = 0;
+      _multi = false;
+      _relogio
+        ..reset()
+        ..start();
+    } else {
+      _multi = true;
+    }
+  }
+
+  void _pMove(PointerMoveEvent e) {
+    if (_dedos == 1) {
+      final d = (e.localPosition - _baixo).distance;
+      if (d > _maxDist) _maxDist = d;
+    }
+  }
+
+  void _pCima(PointerEvent e) {
+    _dedos = math.max(0, _dedos - 1);
+  }
+
   void _terminou(ScaleEndDetails _) {
     _seg?.cancel();
+    final limpo = !_multi && !_mexeu && !_pintando && !_movendo && _maxDist <= _folga && _relogio.elapsedMilliseconds < 380;
     if (_movendo) {
-      final d = _destino, ox = _selX, oy = _selY;
+      final d = _destino, o = _so;
       _movendo = false;
       _destino = null;
-      if (d != null && ox != null && oy != null && (d.$1 != ox || d.$2 != oy)) {
-        final de = '$ox,$oy', para = '${d.$1},${d.$2}';
-        if (!c.celulas.containsKey(para)) {
-          _desfazer.add({de: c.celulas[de], para: null});
-          _refazer.clear();
-          c.celulas[para] = c.celulas.remove(de)!;
-          final p = c.props.remove(de);
-          if (p != null) c.props[para] = p;
-          _selX = d.$1;
-          _selY = d.$2;
-          RepositorioProjetos.instancia.salvar();
-        }
+      if (o != null && d != null && (d.$1 != o.x || d.$2 != o.y) && _destinoValido(o, d.$1, d.$2)) {
+        _snap = false;
+        _marcar();
+        o.x = d.$1;
+        o.y = d.$2;
+        if (_ehTile(o)) _reindex();
+        RepositorioProjetos.instancia.salvar();
       }
+      _snap = false;
       _versao.value++;
       setState(() {});
       return;
     }
-    if (_pintando && _traco.isNotEmpty) {
-      _desfazer.add(_traco);
-      if (_desfazer.length > 100) _desfazer.removeAt(0);
-      _refazer.clear();
-      _traco = {};
+    if (_pintando) {
       RepositorioProjetos.instancia.salvar(); // salva sozinho a cada traco
-    } else if (!_pintando && !_mexeu) {
-      final cel = _celulaEm(_ini); // toque curto: seleciona um OBJETO (celula vazia limpa a selecao)
-      final valido = cel != null && c.celulas.containsKey('${cel.$1},${cel.$2}');
-      _selX = valido ? cel.$1 : null;
-      _selY = valido ? cel.$2 : null;
-      if (valido && _altPainel < 100) _altPainel = _alturas[1];
-      _versao.value++;
+    } else if (limpo) {
+      _snap = false;
+      _tocar(_baixo); // so um toque curto e parado (nada de pan) cria/seleciona
     }
+    _snap = false;
     _pintando = false;
     setState(() {});
   }
@@ -332,29 +550,32 @@ class _CenaTelaState extends State<CenaTela> {
   void _comecou(ScaleStartDetails d) {
     _cont = d.pointerCount;
     _rebase(d.localFocalPoint);
-    _ultimo = null;
     _pintando = false;
     _mexeu = d.pointerCount > 1;
-    _ini = d.localFocalPoint;
     _seg?.cancel();
     _movendo = false;
     _destino = null;
-    if (d.pointerCount == 1 && _temSel) {
-      final sob = _celulaEm(d.localFocalPoint);
-      if (sob != null && sob.$1 == _selX && sob.$2 == _selY) {
+    _snap = false;
+    _visitadas.clear();
+    final o = _so;
+    if (d.pointerCount == 1 && o != null) {
+      final sob = _celulaEm(_baixo);
+      if (sob != null && _contem(o, sob.$1, sob.$2)) {
         _movendo = true; // dedo em cima do objeto selecionado: arrastar = mover o objeto
-        _destino = sob;
+        _pega = (sob.$1 - o.x, sob.$2 - o.y);
+        _destino = (o.x, o.y);
+        _destinoOk = true;
         return;
       }
     }
     if (d.pointerCount == 1) {
       _seg = Timer(const Duration(milliseconds: 380), () {
-        if (_mexeu) return;
+        if (_mexeu || _multi || _maxDist > _folga) return;
         _pintando = true; // segurou parado: comeca a pintar (ou apagar)
         HapticFeedback.selectionClick();
-        _selX = null;
-        _selY = null;
-        _pintarEm(_ini);
+        _so = null;
+        _painelTam = false;
+        _pintarEm(_baixo);
         setState(() {});
       });
     }
@@ -378,17 +599,23 @@ class _CenaTelaState extends State<CenaTela> {
       }
       return;
     }
-    if (_movendo && d.pointerCount == 1) {
-      _destino = _celulaEm(d.localFocalPoint) ?? _destino;
-      _versao.value++;
+    final o = _so;
+    if (_movendo && d.pointerCount == 1 && o != null) {
+      final cel = _celulaPrender(d.localFocalPoint);
+      final nx = (cel.$1 - _pega.$1).clamp(0, c.largura - o.w).toInt(), ny = (cel.$2 - _pega.$2).clamp(0, c.altura - o.h).toInt();
+      if (_destino == null || _destino!.$1 != nx || _destino!.$2 != ny) {
+        _destino = (nx, ny);
+        _destinoOk = _destinoValido(o, nx, ny);
+        _versao.value++;
+      }
       return;
     }
     if (_pintando && d.pointerCount == 1) {
       _pintarEm(d.localFocalPoint);
       return;
     }
-    if (!_mexeu && (d.localFocalPoint - _ini).distance > 10) {
-      _mexeu = true; // arrastou antes de segurar: e mover o mapa
+    if (!_mexeu && _maxDist > _folga) {
+      _mexeu = true; // arrastou: e mover o mapa (nunca cria objeto)
       _seg?.cancel();
       _rebase(d.localFocalPoint);
     }
@@ -411,6 +638,11 @@ class _CenaTelaState extends State<CenaTela> {
         ),
       );
 
+  Widget _mini(IconData i, VoidCallback f) => Toque(
+        aoTocar: f,
+        child: Container(width: 30, height: 30, decoration: BoxDecoration(color: Cores.cartao2, shape: BoxShape.circle), child: Icon(i, size: 17)),
+      );
+
   Widget _barra(IconData i, VoidCallback? f) => Toque(
         aoTocar: f ?? () {},
         child: Container(
@@ -425,11 +657,10 @@ class _CenaTelaState extends State<CenaTela> {
   Widget build(BuildContext context) {
     final itens = valoresPaleta(cat: abasPaleta[_aba]);
     final grande = _altPainel > 300;
-    final objK = _temSel ? '$_selX,$_selY' : null;
-    final objIdx = objK == null ? null : c.celulas[objK];
-    final objItem = objIdx == null ? null : itemDe(objIdx);
-    final objDados = objItem == null ? null : objetoEfetivo(c, objK!, objItem);
-    final objVisual = objDados == null ? null : (itemDe(objDados['textura'] as int? ?? objIdx!) ?? objItem);
+    final so = _so;
+    final objItem = so == null ? null : itemDe(so.v);
+    final objDados = so == null || objItem == null ? null : objetoEfetivo(so, objItem);
+    final objVisual = objDados == null ? null : (itemDe(objDados['textura'] as int? ?? so!.v) ?? objItem);
     Widget celula(int i) => Toque(
           aoTocar: () => setState(() {
             _sel = i;
@@ -458,56 +689,88 @@ class _CenaTelaState extends State<CenaTela> {
             return ClipRect(
               child: Stack(children: [
                 Positioned.fill(
-                  child: GestureDetector(
-                    onScaleStart: _comecou,
-                    onScaleUpdate: _moveu,
-                    onScaleEnd: _terminou,
-                    child: CustomPaint(painter: _CenaPainter(this, _versao)),
+                  child: Listener(
+                    onPointerDown: _pBaixo,
+                    onPointerMove: _pMove,
+                    onPointerUp: _pCima,
+                    onPointerCancel: _pCima,
+                    child: GestureDetector(
+                      onScaleStart: _comecou,
+                      onScaleUpdate: _moveu,
+                      onScaleEnd: _terminou,
+                      child: CustomPaint(painter: _CenaPainter(this, _versao)),
+                    ),
                   ),
                 ),
                 ValueListenableBuilder<int>(
                   valueListenable: _versao,
                   builder: (_, __, ___) {
-                    final sx = _selX, sy = _selY;
-                    if (sx == null || sy == null || _movendo) return const SizedBox.shrink();
-                    final cx = _desl.dx + (sx + 0.5) * _cs * _esc;
-                    final topo = _desl.dy + (c.altura - sy - 1) * _cs * _esc;
-                    final tem = c.celulas.containsKey('$sx,$sy');
-                    Widget b(IconData i, VoidCallback f) => Toque(
+                    final o = _so;
+                    if (o == null || _movendo) return const SizedBox.shrink();
+                    final cx = _desl.dx + (o.x + o.w / 2) * _cs * _esc;
+                    final topo = _desl.dy + (c.altura - o.y - o.h) * _cs * _esc;
+                    final tile = _ehTile(o);
+                    Widget b(IconData i, VoidCallback f, {bool ativo = false}) => Toque(
                           aoTocar: f,
-                          child: Container(width: 38, height: 38, margin: const EdgeInsets.symmetric(horizontal: 2), decoration: BoxDecoration(color: Cores.cartao, shape: BoxShape.circle), child: Icon(i, size: 19)),
+                          child: Container(width: 38, height: 38, margin: const EdgeInsets.symmetric(horizontal: 2), decoration: BoxDecoration(color: ativo ? azulEditor : Cores.cartao, shape: BoxShape.circle), child: Icon(i, size: 19, color: ativo ? Colors.white : null)),
                         );
-                    void aplicar(int? v) {
-                      final k = '$sx,$sy', antes = c.celulas[k];
-                      if (antes == v) return;
-                      _desfazer.add({k: antes});
-                      _refazer.clear();
-                      if (v == null) {
-                        c.celulas.remove(k);
-                        c.props.remove(k);
-                        _selX = null;
-                        _selY = null;
-                      } else {
-                        c.celulas[k] = v;
-                      }
-                      RepositorioProjetos.instancia.salvar();
-                      setState(() {});
-                      _versao.value++;
-                    }
+                    final nb = tile ? 2 : 3;
+                    final largura = nb * 42.0;
                     return Positioned(
-                      left: (cx - 50).clamp(4.0, box.maxWidth - 104),
+                      left: (cx - largura / 2).clamp(4.0, math.max(4.0, box.maxWidth - largura - 4)),
                       top: (topo - 46).clamp(60.0, box.maxHeight - 50),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        if (tem) b(Ic.lixeira, () => aplicar(null)),
+                        b(Ic.lixeira, () {
+                          _snap = false;
+                          _marcar();
+                          _snap = false;
+                          _remover(o);
+                          RepositorioProjetos.instancia.salvar();
+                          setState(() {});
+                        }),
+                        if (!tile) b(Icons.open_in_full_rounded, () => setState(() => _painelTam = !_painelTam), ativo: _painelTam),
                         b(Ic.fechar, () {
-                          _selX = null;
-                          _selY = null;
+                          _so = null;
+                          _painelTam = false;
                           _versao.value++;
+                          setState(() {});
                         }),
                       ]),
                     );
                   },
                 ),
+                if (_painelTam && _so != null)
+                  Positioned(
+                    left: 70,
+                    right: 12,
+                    bottom: 10,
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _versao,
+                      builder: (_, __, ___) {
+                        final o = _so;
+                        if (o == null) return const SizedBox.shrink();
+                        final dx = _movendo ? (_destino?.$1 ?? o.x) : o.x, dy = _movendo ? (_destino?.$2 ?? o.y) : o.y;
+                        Widget passo(String rot, String campo, int v) => Expanded(
+                              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                Text(rot, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Cores.texto2)),
+                                const SizedBox(width: 2),
+                                _mini(Icons.remove_rounded, () => _ajTam(campo, -1)),
+                                SizedBox(width: 26, child: Text('$v', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
+                                _mini(Icons.add_rounded, () => _ajTam(campo, 1)),
+                              ]),
+                            );
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+                          decoration: BoxDecoration(color: Cores.cartao.withAlpha(240), borderRadius: BorderRadius.circular(14)),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Row(children: [passo('W', 'w', o.w), passo('H', 'h', o.h)]),
+                            const SizedBox(height: 2),
+                            Row(children: [passo('X', 'x', dx), passo('Y', 'y', dy)]),
+                          ]),
+                        );
+                      },
+                    ),
+                  ),
                 SafeArea(
                   child: Stack(children: [
                     // barra superior enxuta: voltar | nome da cena (toque = configurar) | desfazer, refazer, rodar
@@ -586,7 +849,7 @@ class _CenaTelaState extends State<CenaTela> {
                     const SizedBox(width: 14),
                     SizedBox(width: 30, height: 30, child: CustomPaint(painter: _Miniatura(objVisual ?? itemDe(_sel) ?? paleta[0]))),
                     const SizedBox(width: 10),
-                    Flexible(child: Text(objItem == null ? (itemDe(_sel) ?? paleta[0]).nome : '${objDados!['nome']}  ·  ($_selX, $_selY)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
+                    Flexible(child: Text(so == null || objDados == null ? (itemDe(_sel) ?? paleta[0]).nome : '${objDados['nome']}  ·  (${so.x}, ${so.y})  ·  ${so.w}×${so.h}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
                     const Spacer(),
                     Container(width: 36, height: 4, decoration: BoxDecoration(color: Cores.texto2.withAlpha(120), borderRadius: BorderRadius.circular(3))),
                     const SizedBox(width: 50),
@@ -596,22 +859,16 @@ class _CenaTelaState extends State<CenaTela> {
                   ]),
                 ),
               ),
-              if (_altPainel > 100 && objItem != null)
+              if (_altPainel > 100 && objItem != null && objDados != null)
                 Expanded(
                   child: PainelObjeto(
                     item: objItem,
                     imagem: CustomPaint(painter: _Miniatura(objVisual ?? objItem)),
                     aoTrocarImagem: _escolherSprite,
-                    dados: objDados!,
-                    x: _selX!,
-                    y: _selY!,
+                    dados: objDados,
+                    id: so!.id,
                     aoMudar: _mudarProp,
-                    aoRestaurar: () {
-                      c.props.remove(objK);
-                      RepositorioProjetos.instancia.salvar();
-                      setState(() {});
-                      _versao.value++;
-                    },
+                    aoRestaurar: _restaurarPadrao,
                   ),
                 )
               else if (_altPainel > 100) ...[
@@ -661,36 +918,44 @@ class _CenaTelaState extends State<CenaTela> {
 class _CenaPainter extends CustomPainter {
   _CenaPainter(this.s, Listenable repaint) : super(repaint: repaint);
   final _CenaTelaState s;
+  final _rotulos = <int, TextPainter>{};
+  Color? _rotCor;
+
+  TextPainter _rotulo(int n, Color cor) {
+    if (_rotCor != cor) {
+      _rotulos.clear();
+      _rotCor = cor;
+    }
+    return _rotulos.putIfAbsent(n, () => TextPainter(text: TextSpan(text: '$n', style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w700)), textDirection: TextDirection.ltr)..layout());
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final c = s.c;
     const cs = _CenaTelaState._cs;
-    canvas.drawRect(Offset.zero & size, Paint()..color = Cores.fundo); // fora do mapa: neutro, no tema do app
+    final fundo = Color(c.corFundo);
+    final claro = fundo.computeLuminance() > 0.5;
+    final tinta = claro ? Colors.black : Colors.white; // linhas e numeros legiveis sobre qualquer cor de fundo
+    canvas.drawRect(Offset.zero & size, Paint()..color = fundo); // a cor da cena vai ate as bordas da tela
     canvas.save();
     canvas.translate(s._desl.dx, s._desl.dy);
     canvas.scale(s._esc);
     final area = Rect.fromLTWH(0, 0, c.largura * cs, c.altura * cs);
-    canvas.drawRRect(RRect.fromRectAndRadius(area.inflate(2), const Radius.circular(6)), Paint()..color = Colors.white.withAlpha(30));
-    canvas.drawRect(area, Paint()..color = Color(c.corFundo));
-    // itens
-    int camadaDe(String k) => (c.props[k]?['camada'] as num?)?.toInt() ?? 0;
-    final ordem = c.celulas.keys.toList()..sort((a, b) => camadaDe(a).compareTo(camadaDe(b)));
-    for (final k in ordem) {
-      final i = c.celulas[k]!;
-      final item = itemDe((c.props[k]?['textura'] as num?)?.toInt() ?? i) ?? itemDe(i);
+    final visivel = Rect.fromLTWH(-s._desl.dx / s._esc, -s._desl.dy / s._esc, size.width / s._esc, size.height / s._esc);
+    // itens (so os que aparecem na tela; ordem em cache)
+    for (final o in s.ordem) {
+      final r = Rect.fromLTWH(o.x * cs, (c.altura - o.y - o.h) * cs, o.w * cs, o.h * cs);
+      if (!r.overlaps(visivel)) continue;
+      final item = itemDe((o.props['textura'] as num?)?.toInt() ?? o.v) ?? itemDe(o.v);
       if (item == null) continue;
-      final p = k.split(',');
-      final x = int.parse(p[0]), y = int.parse(p[1]);
-      final r = Rect.fromLTWH(x * cs, (c.altura - 1 - y) * cs, cs, cs);
-      final oculto = c.props[k]?['visivel'] == false;
+      final oculto = o.props['visivel'] == false;
       if (oculto) canvas.saveLayer(r, Paint()..color = const Color(0x55FFFFFF));
       pintarItem(canvas, r, item);
       if (oculto) canvas.restore();
     }
-    // grade fina (1 pixel de tela, qualquer zoom)
+    // grade fina (1 pixel de tela, qualquer zoom) e limite do mapa
     final fina = Paint()
-      ..color = Colors.black.withAlpha(55)
+      ..color = tinta.withAlpha(34)
       ..strokeWidth = 1 / s._esc;
     for (var x = 0; x <= c.largura; x++) {
       canvas.drawLine(Offset(x * cs, 0), Offset(x * cs, area.height), fina);
@@ -698,37 +963,46 @@ class _CenaPainter extends CustomPainter {
     for (var y = 0; y <= c.altura; y++) {
       canvas.drawLine(Offset(0, y * cs), Offset(area.width, y * cs), fina);
     }
+    canvas.drawRect(
+        area,
+        Paint()
+          ..color = tinta.withAlpha(110)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 / s._esc);
 
     // numeros nos eixos (0 = canto inferior esquerdo)
-    final st = TextStyle(color: Cores.texto2, fontSize: 11, fontWeight: FontWeight.w700);
+    final cor = tinta.withAlpha(170);
     final passo = s._esc >= 0.75 ? 1 : 5; // zoom afastado: numera de 5 em 5 (leitura limpa)
     final numeros = s._esc >= 0.5; // bem longe: sem numeros
     for (var x = 0; numeros && x < c.largura; x += passo) {
-      final tp = TextPainter(text: TextSpan(text: '$x', style: st), textDirection: TextDirection.ltr)..layout();
+      final tp = _rotulo(x, cor);
       tp.paint(canvas, Offset(x * cs + cs / 2 - tp.width / 2, area.height + 5));
     }
     for (var y = 0; numeros && y < c.altura; y += passo) {
-      final tp = TextPainter(text: TextSpan(text: '$y', style: st), textDirection: TextDirection.ltr)..layout();
+      final tp = _rotulo(y, cor);
       tp.paint(canvas, Offset(-6 - tp.width, (c.altura - 1 - y) * cs + cs / 2 - tp.height / 2));
     }
-    if (s._selX != null && s._selY != null) {
+    final o = s._so;
+    if (o != null) {
       final dest = s._movendo ? s._destino : null;
-      final gx = dest?.$1 ?? s._selX!, gy = dest?.$2 ?? s._selY!;
-      final r = Rect.fromLTWH(gx * cs, (c.altura - 1 - gy) * cs, cs, cs);
+      final gx = dest?.$1 ?? o.x, gy = dest?.$2 ?? o.y;
+      final r = Rect.fromLTWH(gx * cs, (c.altura - gy - o.h) * cs, o.w * cs, o.h * cs);
       if (dest != null) {
-        final i = c.celulas['${s._selX},${s._selY}'];
-        final item = i == null ? null : itemDe(i);
+        final item = itemDe(o.v);
         if (item != null) {
           canvas.saveLayer(r, Paint()..color = const Color(0xB3FFFFFF));
           pintarItem(canvas, r, item);
           canvas.restore();
         }
       }
-      canvas.drawRect(r, Paint()..color = azulEditor.withAlpha(50));
-      canvas.drawRect(r, Paint()
-        ..color = azulEditor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5 / s._esc);
+      final cor2 = dest != null && !s._destinoOk ? const Color(0xFFF23F43) : azulEditor;
+      canvas.drawRect(r, Paint()..color = cor2.withAlpha(50));
+      canvas.drawRect(
+          r,
+          Paint()
+            ..color = cor2
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.5 / s._esc);
     }
     canvas.restore();
   }
