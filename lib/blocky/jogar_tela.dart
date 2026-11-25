@@ -9,6 +9,7 @@ import 'biblioteca.dart';
 import 'dados.dart';
 import 'mapa.dart';
 import 'objeto.dart';
+import 'pre_arte.dart';
 import 'projetos.dart';
 import 'servidor.dart';
 import 'widgets.dart';
@@ -70,12 +71,22 @@ class _JogarTelaState extends State<JogarTela> {
         (cenas[i] as Map<String, dynamic>)['ini'] = identical(widget.projeto.cenas[i], widget.daCena);
       }
     }
-    final imagens = <String, dynamic>{};
+    // sprites usados (pela celula ou pela imagem escolhida no objeto): prontos viram PNG 16x16, desenhos do usuario vem da biblioteca
+    final usados = <int>{};
     for (final ce in widget.projeto.cenas) {
-      for (final v in ce.celulas.values) {
-        if (v < baseAsset || imagens.containsKey('$v')) continue;
+      for (final e in ce.celulas.entries) {
+        usados.add(e.value);
+        final t = (ce.props[e.key]?['textura'] as num?)?.toInt();
+        if (t != null) usados.add(t);
+      }
+    }
+    final imagens = <String, dynamic>{};
+    for (final v in usados) {
+      if (v >= baseAsset) {
         final a = Biblioteca.i.porId(v - baseAsset), png = a == null ? null : await Biblioteca.i.pngBytes(a.id);
         if (a != null && png != null) imagens['$v'] = {'nome': a.nome, 'l': a.l, 'a': a.a, 'png': 'data:image/png;base64,${base64Encode(png)}'};
+      } else if (v >= 0 && v < paleta.length && preArtes.containsKey(paleta[v].nome)) {
+        imagens['$v'] = {'nome': paleta[v].nome, 'l': 16, 'a': 16, 'png': 'data:image/png;base64,${base64Encode(await pngPre(paleta[v].nome))}'};
       }
     }
     return jsonEncode({

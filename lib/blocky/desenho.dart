@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -17,7 +16,8 @@ Future<void> abrirDesenho(BuildContext context) => Navigator.of(context).push(Ma
 // ================================================================ novo desenho
 
 class NovoDesenhoTela extends StatefulWidget {
-  const NovoDesenhoTela({super.key});
+  const NovoDesenhoTela({super.key, this.categoria});
+  final String? categoria; // fixa a categoria (ex.: veio do + da aba Tile); null = escolher
 
   @override
   State<NovoDesenhoTela> createState() => _NovoDesenhoTelaState();
@@ -29,6 +29,7 @@ class _NovoDesenhoTelaState extends State<NovoDesenhoTela> {
   final _a = TextEditingController(text: '32');
   int? _fundo; // null = transparente
   String? _erro;
+  late String _cat = widget.categoria ?? 'Objeto';
 
   static const _modelos = <(String, int, int)>[
     ('Ícone', 16, 16),
@@ -44,6 +45,15 @@ class _NovoDesenhoTelaState extends State<NovoDesenhoTela> {
     ('Cinza', 0xFF8E9297),
   ];
   static const int _max = 256;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.categoria;
+    final t = c == 'PFP' ? '64' : (c == 'Tile' || c == 'Objeto' ? '16' : (c == null ? '32' : '32'));
+    _l.text = t;
+    _a.text = t;
+  }
 
   @override
   void dispose() {
@@ -64,7 +74,7 @@ class _NovoDesenhoTelaState extends State<NovoDesenhoTela> {
     }
     setState(() => _erro = erro);
     if (erro != null) return;
-    Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => EditorDesenho(config: ConfigDesenho(nome: nome, largura: l, altura: a, fundo: _fundo))));
+    Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => EditorDesenho(config: ConfigDesenho(nome: nome, largura: l, altura: a, fundo: _fundo), categoria: _cat)));
   }
 
   Widget _chip(String t, bool ativo, VoidCallback f) => Toque(
@@ -83,7 +93,22 @@ class _NovoDesenhoTelaState extends State<NovoDesenhoTela> {
       appBar: AppBar(title: const Text('Novo desenho')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         TextField(controller: _nome, maxLength: 40, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(labelText: 'Nome (obrigatório)', errorText: _erro != null && _nome.text.trim().isEmpty ? _erro : null)),
-        const SizedBox(height: 8),
+        if (widget.categoria == null) ...[
+          const Text('Tipo', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final c in const ['Tile', 'Deco', 'Ator', 'Objeto', 'PFP'])
+              _chip(c == 'PFP' ? 'Foto de perfil' : c, _cat == c, () {
+                _cat = c;
+                final t = c == 'PFP' ? '64' : (c == 'Tile' || c == 'Objeto' ? '16' : '32');
+                _l.text = t;
+                _a.text = t;
+                setState(() {});
+              }),
+          ]),
+        ] else
+          Text(widget.categoria == 'PFP' ? 'Nova foto de perfil' : 'Novo sprite · ${widget.categoria}', style: const TextStyle(color: Cores.texto2)),
+        const SizedBox(height: 12),
         const Text('Modelos', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
@@ -157,7 +182,8 @@ const _paleta = <int>[
 ];
 
 class EditorDesenho extends StatefulWidget {
-  const EditorDesenho({super.key, required this.config, this.doc, this.asset});
+  const EditorDesenho({super.key, required this.config, this.doc, this.asset, this.categoria = 'Objeto'});
+  final String categoria; // so vale para desenho novo
   final ConfigDesenho config;
   final Documento? doc; // desenho salvo sendo reaberto
   final AssetSalvo? asset;
@@ -170,8 +196,8 @@ class _EditorDesenhoState extends State<EditorDesenho> {
   late final Documento d = widget.doc ?? Documento(widget.config);
   late String _nome = widget.doc?.config.nome ?? widget.config.nome;
   late AssetSalvo? _asset = widget.asset;
-  Timer? _auto;
   bool _salvando = false;
+  bool _sujo = false; // ha mudancas nao salvas
 
   Ferr _ferr = Ferr.lapis;
   Pincel _pincel = Pincel.quadrado;
@@ -214,7 +240,6 @@ class _EditorDesenhoState extends State<EditorDesenho> {
 
   @override
   void dispose() {
-    _auto?.cancel();
     _img?.dispose();
     super.dispose();
   }
@@ -234,27 +259,29 @@ class _EditorDesenhoState extends State<EditorDesenho> {
   }
 
   void _mudou() {
-    setState(() {});
+    setState(() => _sujo = true);
     _recompor();
-    _auto?.cancel();
-    _auto = Timer(const Duration(seconds: 2), _salvar); // salva sozinho
   }
 
-  Future<void> _salvar() async {
-    _auto?.cancel();
-    if (_salvando) {
-      _auto = Timer(const Duration(seconds: 1), _salvar);
-      return;
-    }
+  /// Salva o desenho na biblioteca. Devolve true se salvou.
+  Future<bool> _salvar({bool avisar = true}) async {
+    if (_salvando) return false;
     _salvando = true;
     try {
       if (_asset == null) {
-        if (d.podeDesfazer) _asset = await Biblioteca.i.criar(d);
+        _asset = await Biblioteca.i.criar(d, widget.categoria);
       } else {
         await Biblioteca.i.salvar(_asset!, d);
       }
+      if (mounted) {
+        setState(() => _sujo = false);
+        if (avisar) aviso(context, 'Salvo em Meus desenhos.');
+      }
+      return true;
     } catch (e) {
       Avisos.add(Nivel.erro, 'Salvar desenho: $e');
+      if (mounted) aviso(context, 'Não consegui salvar.');
+      return false;
     } finally {
       _salvando = false;
     }
@@ -747,7 +774,7 @@ class _EditorDesenhoState extends State<EditorDesenho> {
             child: GestureDetector(
               onTap: _renomear,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(_nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(_sujo ? '$_nome •' : _nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 Text('${d.l}×${d.a} · ${d.cam.nome} · ${(_zoom * 100 / 8).round()}%', style: const TextStyle(fontSize: 11, color: Cores.texto2)),
               ]),
             ),
@@ -760,14 +787,31 @@ class _EditorDesenhoState extends State<EditorDesenho> {
             d.refazer();
             _mudou();
           } : null),
+          IconButton(tooltip: 'Salvar', icon: Icon(_sujo ? Icons.save_rounded : Icons.save_outlined, color: _sujo ? Cores.acento : null), onPressed: _salvar),
           IconButton(tooltip: 'Camadas', icon: const Icon(Icons.layers_outlined), onPressed: _painelCamadas),
           IconButton(tooltip: 'Mais', icon: const Icon(Icons.more_vert_rounded), onPressed: _menuTela),
         ]),
       );
 
   Future<void> _sair() async {
-    await _salvar();
-    if (mounted) Navigator.of(context).pop();
+    if (!_sujo) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final r = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Salvar o desenho?'),
+        content: const Text('Há mudanças que ainda não foram salvas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, 'descartar'), child: const Text('Descartar', style: TextStyle(color: Cores.coral))),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'ficar'), child: const Text('Voltar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, 'salvar'), child: const Text('Salvar')),
+        ],
+      ),
+    );
+    if (r == 'descartar' && mounted) Navigator.of(context).pop();
+    if (r == 'salvar' && await _salvar(avisar: false) && mounted) Navigator.of(context).pop();
   }
 
   Widget _opcoes() {
