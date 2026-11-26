@@ -38,6 +38,7 @@ class _JogarTelaState extends State<JogarTela> {
   bool _desempenho = false; // caixa com FPS e tempos num canto
   Map<String, dynamic> _info = {};
   Timer? _poll;
+  double _qualidade = 1.5; // dpr maximo do canvas: 3 alta, 1.5 media, 1 baixa
   final _log = <String>[]; // console do jogo (ultimas 150 linhas)
 
   @override
@@ -154,6 +155,27 @@ class _JogarTelaState extends State<JogarTela> {
                   },
                 ),
                 Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Qualidade gráfica', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<double>(
+                        showSelectedIcon: false,
+                        segments: const [ButtonSegment(value: 3, label: Text('Alta')), ButtonSegment(value: 1.5, label: Text('Média')), ButtonSegment(value: 1, label: Text('Baixa'))],
+                        selected: {_qualidade},
+                        onSelectionChanged: (s) {
+                          _qualidade = s.first;
+                          _web.runJavaScript('window.definirQualidade && window.definirQualidade($_qualidade)');
+                          setD(() {});
+                        },
+                      ),
+                    ),
+                    const Padding(padding: EdgeInsets.only(top: 4), child: Text('Menos pixels = mais FPS em celular fraco.', style: TextStyle(fontSize: 12, color: Cores.texto2))),
+                  ]),
+                ),
+                Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
                   child: Row(children: [
                     const Expanded(child: Text('CONSOLE DO JOGO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Cores.texto2))),
@@ -181,7 +203,7 @@ class _JogarTelaState extends State<JogarTela> {
 
   Widget _redondo(IconData i, VoidCallback f) => Toque(
         aoTocar: f,
-        child: Container(width: 44, height: 44, decoration: const BoxDecoration(color: Color(0xB3141414), shape: BoxShape.circle), child: Icon(i, size: 22, color: Colors.white)),
+        child: Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xE62A3340), shape: BoxShape.circle, border: Border.all(color: Colors.white24)), child: Icon(i, size: 22, color: Colors.white)),
       );
 
   @override
@@ -220,7 +242,7 @@ class _JogarTelaState extends State<JogarTela> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(color: const Color(0xCC000000), borderRadius: BorderRadius.circular(10)),
-                      child: Text('FPS ${n('fps')}  ·  ${n('ms')} ms  ·  pior ${n('pior')} ms\nobjetos ${n('ent')}  ·  corpos ${n('corpos')}  ·  mem ${n('mem')} MB', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.white, fontFamily: 'monospace', height: 1.35)),
+                      child: Text('FPS ${n('fps')}  ·  ${n('ms')} ms  ·  pior ${n('pior')} ms\nobjetos ${n('ent')}  ·  corpos ${n('corpos')}  ·  mem ${n('mem')} MB\ncanvas ${n('res')}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.white, fontFamily: 'monospace', height: 1.35)),
                     ),
                   ),
                 ),
