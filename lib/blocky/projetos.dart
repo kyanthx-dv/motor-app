@@ -39,8 +39,46 @@ class ObjetoCena {
   ObjetoCena copia(int novoId) => ObjetoCena(id: novoId, v: v, x: x, y: y, w: w, h: h, props: Map<String, dynamic>.from(props));
 }
 
+enum ModoCamera { fixo, arrastar, seguir, restrito }
+
+/// Camera da cena. Tudo aqui vira estado.camera na engine, entao um script pode trocar modo/zoom/alvo em tempo real.
+class CameraCena {
+  CameraCena({this.modo = ModoCamera.restrito, this.zoom = 1.4, this.fx, this.fy, this.lim});
+  ModoCamera modo; // fixo | arrastar | seguir (ator principal, sem limites) | restrito (segue e fica nos limites)
+  double zoom;
+  int? fx, fy; // posicao do modo Fixo, em celulas (null = centro do mapa)
+  List<int>? lim; // limites do modo Restrito [x, y, w, h] em celulas (null = mapa inteiro)
+
+  Map<String, dynamic> toJson() => {'modo': modo.name, 'zoom': zoom, if (fx != null) 'fx': fx, if (fy != null) 'fy': fy, if (lim != null) 'lim': {'x': lim![0], 'y': lim![1], 'w': lim![2], 'h': lim![3]}};
+
+  static CameraCena fromJson(Map<String, dynamic> j) {
+    final l = j['lim'];
+    return CameraCena(
+      modo: ModoCamera.values.firstWhere((m) => m.name == j['modo'], orElse: () => ModoCamera.restrito),
+      zoom: ((j['zoom'] as num?) ?? 1.4).toDouble().clamp(0.3, 4.0),
+      fx: (j['fx'] as num?)?.toInt(),
+      fy: (j['fy'] as num?)?.toInt(),
+      lim: l is Map ? [(l['x'] as num).toInt(), (l['y'] as num).toInt(), (l['w'] as num).toInt(), (l['h'] as num).toInt()] : null,
+    );
+  }
+
+  CameraCena copia() => CameraCena(modo: modo, zoom: zoom, fx: fx, fy: fy, lim: lim == null ? null : [...lim!]);
+}
+
+/// Marcador "ator principal" (seta + sombra). Opcional: a cena vale sem ele. [objetoId] aponta para um objeto Ator
+/// (null = sombra solta, sem ator); a referencia e so um id, entao pode ser trocada por script.
+class AtorPrincipal {
+  AtorPrincipal({this.objetoId, required this.x, required this.y});
+  int? objetoId;
+  int x, y; // onde a sombra fica enquanto nao ha ator ligado
+
+  Map<String, dynamic> toJson() => {'obj': objetoId, 'x': x, 'y': y};
+  static AtorPrincipal fromJson(Map<String, dynamic> j) => AtorPrincipal(objetoId: (j['obj'] as num?)?.toInt(), x: ((j['x'] as num?) ?? 0).toInt(), y: ((j['y'] as num?) ?? 0).toInt());
+  AtorPrincipal copia() => AtorPrincipal(objetoId: objetoId, x: x, y: y);
+}
+
 class Cena {
-  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, List<ObjetoCena>? objetos, this.inicial = false, this.px = -1, this.py = -1}) : objetos = objetos ?? [];
+  Cena({required this.nome, this.fisica = Fisica.plataforma, this.largura = 16, this.altura = 12, this.corFundo = 0xFF4DD0FF, List<ObjetoCena>? objetos, this.inicial = false, this.px = -1, this.py = -1, CameraCena? camera, this.ator}) : objetos = objetos ?? [], camera = camera ?? CameraCena();
   String nome;
   Fisica fisica;
   int largura;
@@ -52,10 +90,13 @@ class Cena {
   double py;
   /// Objetos do mapa (origem embaixo-esquerda, como no editor de PC).
   final List<ObjetoCena> objetos;
+  CameraCena camera;
+  /// Ator principal (null = a cena nao tem; continua valida).
+  AtorPrincipal? ator;
   int _proxId = 1;
   int novoId() => _proxId++;
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'objs': [for (final o in objetos) o.toJson()]};
+  Map<String, dynamic> toJson() => {'nome': nome, 'fisica': fisica.name, 'l': largura, 'a': altura, 'cor': corFundo, 'ini': inicial, 'px': px, 'py': py, 'objs': [for (final o in objetos) o.toJson()], 'cam': camera.toJson(), if (ator != null) 'ator': ator!.toJson()};
 
   static Cena fromJson(Map<String, dynamic> j) {
     final c = Cena(
@@ -67,6 +108,8 @@ class Cena {
       inicial: (j['ini'] as bool?) ?? false,
       px: ((j['px'] as num?) ?? -1).toDouble(),
       py: ((j['py'] as num?) ?? -1).toDouble(),
+      camera: j['cam'] is Map ? CameraCena.fromJson(Map<String, dynamic>.from(j['cam'] as Map)) : null,
+      ator: j['ator'] is Map ? AtorPrincipal.fromJson(Map<String, dynamic>.from(j['ator'] as Map)) : null,
     );
     for (final o in ((j['objs'] as List?) ?? const [])) {
       final ob = ObjetoCena.fromJson(Map<String, dynamic>.from(o as Map));
@@ -85,10 +128,15 @@ class Cena {
   }
 
   Cena copia() {
-    final c = Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, px: px + 30, py: py + 30);
+    final c = Cena(nome: '$nome (cópia)', fisica: fisica, largura: largura, altura: altura, corFundo: corFundo, px: px + 30, py: py + 30, camera: camera.copia());
+    final ids = <int, int>{};
     for (final o in objetos) {
-      c.objetos.add(o.copia(c.novoId()));
+      final n = o.copia(c.novoId());
+      ids[o.id] = n.id;
+      c.objetos.add(n);
     }
+    final a = ator;
+    if (a != null) c.ator = AtorPrincipal(objetoId: a.objetoId == null ? null : ids[a.objetoId], x: a.x, y: a.y);
     return c;
   }
 }
