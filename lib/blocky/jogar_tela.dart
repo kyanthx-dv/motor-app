@@ -62,7 +62,7 @@ class _JogarTelaState extends State<JogarTela> {
       final ce = widget.projeto.cenas[i];
       (cenasJson[i] as Map<String, dynamic>)['objs'] = [
         for (final o in ce.objetos)
-          if (itemDe(o.v) != null) {'x': o.x, 'y': o.y, 'w': o.w, 'h': o.h, 'v': o.v, ...objetoEfetivo(o, itemDe(o.v)!)},
+          if (itemDe(o.v) != null) {'id': o.id, 'x': o.x, 'y': o.y, 'w': o.w, 'h': o.h, 'v': o.v, ...objetoEfetivo(o, itemDe(o.v)!)},
       ];
     }
     if (widget.daCena != null) {

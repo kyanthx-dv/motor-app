@@ -100,6 +100,13 @@ class CenaTela extends StatefulWidget {
   State<CenaTela> createState() => _CenaTelaState();
 }
 
+/// Foto do mapa para desfazer: objetos + ator principal.
+class _Foto {
+  _Foto(this.objs, this.ator);
+  final List<ObjetoCena> objs;
+  final AtorPrincipal? ator;
+}
+
 class _CenaTelaState extends State<CenaTela> {
   static const double _cs = 40; // celula em unidades do mundo
   static const double _folga = 10; // deslocamento maximo (px) para ainda ser um "toque certeiro"
@@ -137,8 +144,15 @@ class _CenaTelaState extends State<CenaTela> {
   final _visitadas = <int>{};
 
   // desfazer / refazer por foto da lista de objetos (max 30)
-  final _desfazer = <List<ObjetoCena>>[];
-  final _refazer = <List<ObjetoCena>>[];
+  final _desfazer = <_Foto>[];
+  final _refazer = <_Foto>[];
+
+  // marcador do ator principal (seta + sombra)
+  ObjetoCena? _atorObj; // objeto ligado ao marcador (cache; null = sombra solta)
+  bool _mSel = false; // marcador selecionado (mostra o menu dele)
+  bool _arrMarc = false; // arrastando o marcador
+  (int, int)? _mDest;
+  Size _tam = Size.zero;
   bool _snap = false; // ja guardou o desfazer neste gesto
 
   // camera (zoom + deslocamento), controlada a mao: 1 dedo age, 2 dedos movem/zoom
@@ -167,6 +181,7 @@ class _CenaTelaState extends State<CenaTela> {
     Biblioteca.i.carregar().then((_) => _aoMudarBiblioteca());
     Biblioteca.i.addListener(_aoMudarBiblioteca);
     _reindex();
+    _resolverAtor();
   }
 
   @override
@@ -179,6 +194,7 @@ class _CenaTelaState extends State<CenaTela> {
   }
 
   void _ajustar(Size s) {
+    _tam = s;
     final mw = c.largura * _cs, mh = c.altura * _cs;
     _esc = math.min((s.width - 96) / mw, (s.height - 130) / mh).clamp(0.3, 1.6);
     _desl = Offset((s.width - mw * _esc) / 2 + 30, (s.height - mh * _esc) / 2 + 10);
@@ -228,22 +244,102 @@ class _CenaTelaState extends State<CenaTela> {
     return null;
   }
 
-  List<ObjetoCena> _copiaLista() => [for (final o in c.objetos) o.copia(o.id)];
+  _Foto _foto() => _Foto([for (final o in c.objetos) o.copia(o.id)], c.ator?.copia());
+
+  /// Liga o cache do objeto do ator principal (e solta a ligacao se o objeto sumiu).
+  void _resolverAtor() {
+    final a = c.ator;
+    _atorObj = null;
+    if (a == null || a.objetoId == null) return;
+    for (final o in c.objetos) {
+      if (o.id == a.objetoId) _atorObj = o;
+    }
+    if (_atorObj == null) a.objetoId = null;
+  }
+
+  /// Canto do marcador: do ator ligado ou da sombra solta.
+  (int, int)? get _posMarcador {
+    final a = c.ator;
+    if (a == null) return null;
+    final o = _atorObj;
+    return o != null ? (o.x, o.y) : (a.x, a.y);
+  }
+
+  bool _ehAtor(ObjetoCena o) => itemDe(o.v)?.aba == 'Ator';
+
+  /// Toque na area do marcador: a seta (celula de cima) ou a sombra solta (sem objeto na celula).
+  bool _noMarcador(int x, int y) {
+    final p = _posMarcador;
+    if (p == null || x != p.$1) return false;
+    if (y == p.$2 + 1) return true;
+    return y == p.$2 && _atorObj == null && _naoTileEm(x, y) == null;
+  }
+
+  /// Liga o marcador a [o] (ou solta em [x],[y]); marca desfazer.
+  void _ligarAtor(ObjetoCena? o, int x, int y) {
+    final a = c.ator;
+    if (a == null) return;
+    _snap = false;
+    _marcar();
+    _snap = false;
+    a.objetoId = o?.id;
+    a.x = x;
+    a.y = o == null ? y.clamp(0, c.altura - 2).toInt() : y; // sombra solta deixa espaco para a seta
+    _resolverAtor();
+    RepositorioProjetos.instancia.salvar();
+  }
+
+  void _criarMarcador() {
+    if (c.ator != null) {
+      _mSel = true;
+      setState(() {});
+      _versao.value++;
+      return;
+    }
+    final cel = _tam == Size.zero ? (c.largura ~/ 2, c.altura ~/ 2) : _celulaPrender(Offset(_tam.width / 2, _tam.height / 2));
+    _snap = false;
+    _marcar();
+    _snap = false;
+    c.ator = AtorPrincipal(x: cel.$1, y: math.min(cel.$2, c.altura - 2).clamp(0, c.altura - 1).toInt());
+    _resolverAtor();
+    _mSel = true;
+    _so = null;
+    _painelTam = false;
+    RepositorioProjetos.instancia.salvar();
+    setState(() {});
+    _versao.value++;
+  }
+
+  void _removerMarcador() {
+    if (c.ator == null) return;
+    _snap = false;
+    _marcar();
+    _snap = false;
+    c.ator = null;
+    _atorObj = null;
+    _mSel = false;
+    RepositorioProjetos.instancia.salvar();
+    setState(() {});
+    _versao.value++;
+  }
 
   /// Guarda o estado para desfazer (uma vez por gesto).
   void _marcar() {
     if (_snap) return;
     _snap = true;
-    _desfazer.add(_copiaLista());
+    _desfazer.add(_foto());
     if (_desfazer.length > 30) _desfazer.removeAt(0);
     _refazer.clear();
   }
 
-  void _restaurar(List<ObjetoCena> l) {
+  void _restaurar(_Foto f) {
     final id = _so?.id;
+    c.ator = f.ator?.copia();
     c.objetos
       ..clear()
-      ..addAll([for (final o in l) o.copia(o.id)]);
+      ..addAll([for (final o in f.objs) o.copia(o.id)]);
+    _resolverAtor();
+    if (c.ator == null) _mSel = false;
     _so = null;
     if (id != null) {
       for (final o in c.objetos) {
@@ -258,7 +354,7 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _undo() {
     if (_desfazer.isEmpty) return;
-    _refazer.add(_copiaLista());
+    _refazer.add(_foto());
     _restaurar(_desfazer.removeLast());
     setState(() {});
     RepositorioProjetos.instancia.salvar();
@@ -266,7 +362,7 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _redo() {
     if (_refazer.isEmpty) return;
-    _desfazer.add(_copiaLista());
+    _desfazer.add(_foto());
     _restaurar(_refazer.removeLast());
     setState(() {});
     RepositorioProjetos.instancia.salvar();
@@ -302,6 +398,13 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _remover(ObjetoCena o) {
     c.objetos.remove(o);
+    final at = c.ator;
+    if (at != null && at.objetoId == o.id) {
+      at.objetoId = null; // o ator principal foi apagado: a sombra fica onde ele estava
+      at.x = o.x;
+      at.y = o.y;
+      _atorObj = null;
+    }
     if (_ehTile(o)) _tiles.remove(o.x * 1000 + o.y);
     if (identical(_so, o)) {
       _so = null;
@@ -339,6 +442,7 @@ class _CenaTelaState extends State<CenaTela> {
 
   /// Toque certeiro numa celula: apagar / selecionar / criar 1 objeto.
   void _tocar(Offset p) {
+    _mSel = false;
     final cel = _celulaEm(p);
     if (cel == null) {
       _so = null;
@@ -518,7 +622,27 @@ class _CenaTelaState extends State<CenaTela> {
 
   void _terminou(ScaleEndDetails _) {
     _seg?.cancel();
-    final limpo = !_multi && !_mexeu && !_pintando && !_movendo && _maxDist <= _folga && _relogio.elapsedMilliseconds < 380;
+    final limpo = !_multi && !_mexeu && !_pintando && !_movendo && !_arrMarc && _maxDist <= _folga && _relogio.elapsedMilliseconds < 380;
+    if (_arrMarc) {
+      final d = _mDest, p = _posMarcador;
+      _arrMarc = false;
+      _mDest = null;
+      _mSel = true;
+      _so = null;
+      if (d != null && p != null && _maxDist > _folga && (d.$1 != p.$1 || d.$2 != p.$2)) {
+        // soltou sobre um Ator: ele vira o principal; soltou no vazio: a sombra fica solta ali
+        ObjetoCena? alvo;
+        final l = ordem;
+        for (var i = l.length - 1; i >= 0 && alvo == null; i--) {
+          if (_contem(l[i], d.$1, d.$2) && _ehAtor(l[i])) alvo = l[i];
+        }
+        _ligarAtor(alvo, d.$1, d.$2);
+      }
+      _snap = false;
+      _versao.value++;
+      setState(() {});
+      return;
+    }
     if (_movendo) {
       final d = _destino, o = _so;
       _movendo = false;
@@ -530,6 +654,9 @@ class _CenaTelaState extends State<CenaTela> {
         o.y = d.$2;
         if (_ehTile(o)) _reindex();
         RepositorioProjetos.instancia.salvar();
+        // soltou um Ator sobre a sombra/seta: vira o ator principal
+        final mp = _posMarcador;
+        if (c.ator != null && mp != null && _ehAtor(o) && !identical(o, _atorObj) && _contem(o, mp.$1, mp.$2)) _ligarAtor(o, o.x, o.y);
       }
       _snap = false;
       _versao.value++;
@@ -556,6 +683,8 @@ class _CenaTelaState extends State<CenaTela> {
     _movendo = false;
     _destino = null;
     _snap = false;
+    _arrMarc = false;
+    _mDest = null;
     _visitadas.clear();
     final o = _so;
     if (d.pointerCount == 1 && o != null) {
@@ -569,11 +698,18 @@ class _CenaTelaState extends State<CenaTela> {
       }
     }
     if (d.pointerCount == 1) {
+      final sob = _celulaEm(_baixo);
+      if (sob != null && _noMarcador(sob.$1, sob.$2)) {
+        _arrMarc = true; // dedo na seta/sombra: arrastar o marcador
+        _mDest = _posMarcador;
+        return;
+      }
       _seg = Timer(const Duration(milliseconds: 380), () {
         if (_mexeu || _multi || _maxDist > _folga) return;
         _pintando = true; // segurou parado: comeca a pintar (ou apagar)
         HapticFeedback.selectionClick();
         _so = null;
+        _mSel = false;
         _painelTam = false;
         _pintarEm(_baixo);
         setState(() {});
@@ -596,6 +732,14 @@ class _CenaTelaState extends State<CenaTela> {
         _destino = null;
         _mexeu = true;
         _seg?.cancel();
+      }
+      return;
+    }
+    if (_arrMarc && d.pointerCount == 1) {
+      final cel = _celulaPrender(d.localFocalPoint);
+      if (_mDest == null || _mDest!.$1 != cel.$1 || _mDest!.$2 != cel.$2) {
+        _mDest = cel;
+        _versao.value++;
       }
       return;
     }
@@ -739,6 +883,31 @@ class _CenaTelaState extends State<CenaTela> {
                     );
                   },
                 ),
+                ValueListenableBuilder<int>(
+                  valueListenable: _versao,
+                  builder: (_, __, ___) {
+                    final p = _posMarcador;
+                    if (!_mSel || p == null || _arrMarc) return const SizedBox.shrink();
+                    final cx = _desl.dx + (p.$1 + 0.5) * _cs * _esc;
+                    final topo = _desl.dy + (c.altura - p.$2 - 2) * _cs * _esc;
+                    Widget b(IconData i, VoidCallback f) => Toque(
+                          aoTocar: f,
+                          child: Container(width: 38, height: 38, margin: const EdgeInsets.symmetric(horizontal: 2), decoration: const BoxDecoration(color: Cores.cartao, shape: BoxShape.circle), child: Icon(i, size: 19)),
+                        );
+                    return Positioned(
+                      left: (cx - 42).clamp(4.0, math.max(4.0, box.maxWidth - 88)),
+                      top: (topo - 46).clamp(60.0, box.maxHeight - 50),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        b(Ic.lixeira, _removerMarcador),
+                        b(Ic.fechar, () {
+                          _mSel = false;
+                          _versao.value++;
+                          setState(() {});
+                        }),
+                      ]),
+                    );
+                  },
+                ),
                 if (_painelTam && _so != null)
                   Positioned(
                     left: 70,
@@ -823,6 +992,17 @@ class _CenaTelaState extends State<CenaTela> {
                           _ajustou = false;
                           setState(() {});
                         }),
+                        const SizedBox(height: 8),
+                        Toque(
+                          aoTocar: _criarMarcador,
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(color: c.ator != null ? azulEditor : Cores.cartao.withAlpha(235), borderRadius: BorderRadius.circular(14)),
+                            child: Text(c.ator != null ? 'Ator' : '+ Ator', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: c.ator != null ? Colors.white : Cores.texto2)),
+                          ),
+                        ),
                       ]),
                     ),
                   ]),
@@ -1004,7 +1184,40 @@ class _CenaPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2.5 / s._esc);
     }
+    final mp = s._arrMarc ? s._mDest : s._posMarcador;
+    if (c.ator != null && mp != null) _marcador(canvas, Rect.fromLTWH(mp.$1 * cs, (c.altura - 1 - mp.$2) * cs, cs, cs), s._atorObj != null || s._arrMarc, s._mSel);
     canvas.restore();
+  }
+
+  /// Seta + sombra do ator principal (a seta aponta de cima para a sombra no chao da celula).
+  void _marcador(Canvas canvas, Rect r, bool ligado, bool sel) {
+    final cs = r.width, cx = r.center.dx;
+    final alfa = ligado ? 255 : 170;
+    final sombra = Rect.fromCenter(center: Offset(cx, r.bottom - cs * 0.14), width: cs * 0.82, height: cs * 0.26);
+    canvas.drawOval(sombra, Paint()..color = Colors.black.withAlpha(ligado ? 110 : 80));
+    canvas.drawOval(
+        sombra,
+        Paint()
+          ..color = Cores.acento.withAlpha(alfa)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = sel ? 3 : 1.6);
+    final topo = r.top - cs * 0.62, ponta = r.top + cs * 0.02;
+    final seta = Path()
+      ..moveTo(cx, ponta)
+      ..lineTo(cx - cs * 0.3, ponta - cs * 0.3)
+      ..lineTo(cx - cs * 0.11, ponta - cs * 0.3)
+      ..lineTo(cx - cs * 0.11, topo)
+      ..lineTo(cx + cs * 0.11, topo)
+      ..lineTo(cx + cs * 0.11, ponta - cs * 0.3)
+      ..lineTo(cx + cs * 0.3, ponta - cs * 0.3)
+      ..close();
+    canvas.drawPath(seta, Paint()..color = Cores.acento.withAlpha(alfa));
+    canvas.drawPath(
+        seta,
+        Paint()
+          ..color = Colors.black.withAlpha(120)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2);
   }
 
   @override
