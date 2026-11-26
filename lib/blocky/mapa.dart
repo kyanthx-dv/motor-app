@@ -43,20 +43,34 @@ const paleta = <ItemPaleta>[
 const abasPaleta = ['Tile', 'Deco', 'Ator', 'Objeto'];
 
 /// Item para um valor de celula (indice da paleta ou desenho da biblioteca). null = invalido/apagado.
+final _itensCache = <int, ItemPaleta?>{};
+bool _ouvindoBiblioteca = false;
+
 ItemPaleta? itemDe(int v) {
   if (v >= baseAsset) {
-    final a = Biblioteca.i.porId(v - baseAsset);
-    return a == null ? null : ItemPaleta(a.nome, a.cat, const Color(0xFFFFFFFF), a.id);
+    if (!_ouvindoBiblioteca) {
+      _ouvindoBiblioteca = true;
+      Biblioteca.i.addListener(_itensCache.clear); // desenho novo/apagado/renomeado: refaz o cache
+    }
+    // cache: o editor chama isto varias vezes por objeto a cada quadro
+    return _itensCache.putIfAbsent(v, () {
+      final a = Biblioteca.i.porId(v - baseAsset);
+      return a == null ? null : ItemPaleta(a.nome, a.cat, const Color(0xFFFFFFFF), a.id);
+    });
   }
   return v >= 0 && v < paleta.length ? paleta[v] : null;
 }
+
+final _pincelPixel = Paint()
+  ..filterQuality = FilterQuality.none
+  ..isAntiAlias = false;
 
 /// Desenha um item dentro de [r] (pixels nitidos).
 void pintarItem(Canvas c, Rect r, ItemPaleta it) {
   final aid = it.assetId;
   if (aid != null) {
     final im = Biblioteca.i.imagem(aid);
-    if (im != null) c.drawImageRect(im, Rect.fromLTWH(0, 0, im.width.toDouble(), im.height.toDouble()), r, Paint()..filterQuality = FilterQuality.none..isAntiAlias = false);
+    if (im != null) c.drawImageRect(im, Rect.fromLTWH(0, 0, im.width.toDouble(), im.height.toDouble()), r, _pincelPixel);
     return;
   }
   if (preArtes.containsKey(it.nome)) {
@@ -107,6 +121,11 @@ class _Foto {
   final AtorPrincipal? ator;
 }
 
+/// Alcas de redimensionar de um retangulo (qualquer espaco de coordenadas): 8 quando grande, 2 cantos quando pequeno.
+List<(String, Offset)> _alcasDe(Rect r, bool grande) => grande
+    ? [('tl', r.topLeft), ('t', r.topCenter), ('tr', r.topRight), ('r', r.centerRight), ('br', r.bottomRight), ('b', r.bottomCenter), ('bl', r.bottomLeft), ('l', r.centerLeft)]
+    : [('tr', r.topRight), ('bl', r.bottomLeft)];
+
 class _CenaTelaState extends State<CenaTela> {
   static const double _cs = 40; // celula em unidades do mundo
   static const double _folga = 10; // deslocamento maximo (px) para ainda ser um "toque certeiro"
@@ -150,6 +169,7 @@ class _CenaTelaState extends State<CenaTela> {
   // marcador do ator principal (seta + sombra)
   ObjetoCena? _atorObj; // objeto ligado ao marcador (cache; null = sombra solta)
   bool _mSel = false; // marcador selecionado (mostra o menu dele)
+  String? _redim; // alca de redimensionar em uso (ex.: 'tr', 'l')
   bool _arrMarc = false; // arrastando o marcador
   (int, int)? _mDest;
   Size _tam = Size.zero;
@@ -594,6 +614,9 @@ class _CenaTelaState extends State<CenaTela> {
     _versao.value++;
   }
 
+  /// Retangulo do objeto em pixels de tela (para tocar nas alcas).
+  Rect _retaTela(ObjetoCena o) => Rect.fromLTWH(_desl.dx + o.x * _cs * _esc, _desl.dy + (c.altura - o.y - o.h) * _cs * _esc, o.w * _cs * _esc, o.h * _cs * _esc);
+
   // ---------- gestos ----------
   void _pBaixo(PointerDownEvent e) {
     _dedos++;
@@ -623,6 +646,14 @@ class _CenaTelaState extends State<CenaTela> {
   void _terminou(ScaleEndDetails _) {
     _seg?.cancel();
     final limpo = !_multi && !_mexeu && !_pintando && !_movendo && !_arrMarc && _maxDist <= _folga && _relogio.elapsedMilliseconds < 380;
+    if (_redim != null) {
+      _redim = null;
+      _snap = false;
+      RepositorioProjetos.instancia.salvar();
+      _versao.value++;
+      setState(() {});
+      return;
+    }
     if (_arrMarc) {
       final d = _mDest, p = _posMarcador;
       _arrMarc = false;
@@ -685,8 +716,19 @@ class _CenaTelaState extends State<CenaTela> {
     _snap = false;
     _arrMarc = false;
     _mDest = null;
+    _redim = null;
     _visitadas.clear();
     final o = _so;
+    if (d.pointerCount == 1 && o != null && !_ehTile(o)) {
+      // dedo numa alca do objeto selecionado: redimensiona arrastando
+      final tela = _retaTela(o);
+      for (final h in _alcasDe(tela, math.min(tela.width, tela.height) >= 64)) {
+        if ((h.$2 - _baixo).distance <= 26) {
+          _redim = h.$1;
+          return;
+        }
+      }
+    }
     if (d.pointerCount == 1 && o != null) {
       final sob = _celulaEm(_baixo);
       if (sob != null && _contem(o, sob.$1, sob.$2)) {
@@ -732,6 +774,24 @@ class _CenaTelaState extends State<CenaTela> {
         _destino = null;
         _mexeu = true;
         _seg?.cancel();
+      }
+      return;
+    }
+    if (_redim != null && d.pointerCount == 1 && _so != null) {
+      final o = _so!, id = _redim!;
+      final cel = _celulaPrender(d.localFocalPoint);
+      var l = o.x, r = o.x + o.w - 1, b = o.y, t = o.y + o.h - 1;
+      if (id.contains('r')) r = math.max(cel.$1, l);
+      if (id.contains('l')) l = math.min(cel.$1, r);
+      if (id.contains('t')) t = math.max(cel.$2, b);
+      if (id.contains('b')) b = math.min(cel.$2, t);
+      if (l != o.x || r != o.x + o.w - 1 || b != o.y || t != o.y + o.h - 1) {
+        _marcar();
+        o.x = l;
+        o.w = r - l + 1;
+        o.y = b;
+        o.h = t - b + 1;
+        _versao.value++;
       }
       return;
     }
@@ -1183,6 +1243,19 @@ class _CenaPainter extends CustomPainter {
             ..color = cor2
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2.5 / s._esc);
+      if (dest == null && !s._ehTile(o) && !s._arrMarc) {
+        // alcas de redimensionar (tamanho constante na tela)
+        final tela = s._retaTela(o);
+        final preench = Paint()..color = Colors.white;
+        final borda = Paint()
+          ..color = azulEditor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5 / s._esc;
+        for (final h in _alcasDe(r, math.min(tela.width, tela.height) >= 64)) {
+          canvas.drawCircle(h.$2, 8 / s._esc, preench);
+          canvas.drawCircle(h.$2, 8 / s._esc, borda);
+        }
+      }
     }
     final mp = s._arrMarc ? s._mDest : s._posMarcador;
     if (c.ator != null && mp != null) _marcador(canvas, Rect.fromLTWH(mp.$1 * cs, (c.altura - 1 - mp.$2) * cs, cs, cs), s._atorObj != null || s._arrMarc, s._mSel);
