@@ -892,7 +892,7 @@ class _CenaTelaState extends State<CenaTela> {
                     final topo = _desl.dy + (c.altura - p.$2 - 2) * _cs * _esc;
                     Widget b(IconData i, VoidCallback f) => Toque(
                           aoTocar: f,
-                          child: Container(width: 38, height: 38, margin: const EdgeInsets.symmetric(horizontal: 2), decoration: const BoxDecoration(color: Cores.cartao, shape: BoxShape.circle), child: Icon(i, size: 19)),
+                          child: Container(width: 38, height: 38, margin: const EdgeInsets.symmetric(horizontal: 2), decoration: BoxDecoration(color: Cores.cartao, shape: BoxShape.circle), child: Icon(i, size: 19)),
                         );
                     return Positioned(
                       left: (cx - 42).clamp(4.0, math.max(4.0, box.maxWidth - 88)),
