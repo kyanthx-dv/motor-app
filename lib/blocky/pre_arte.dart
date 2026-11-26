@@ -301,14 +301,16 @@ ui.Picture _figura(String nome) => _figuras.putIfAbsent(nome, () {
       return rec.endRecording();
     });
 
-/// Desenha o sprite [nome] dentro de [r] (pixels nitidos).
+final Map<String, ui.Image> _rasters = {};
+final ui.Paint _tinta = ui.Paint()
+  ..filterQuality = ui.FilterQuality.none
+  ..isAntiAlias = false;
+
+/// Desenha o sprite [nome] dentro de [r] (pixels nitidos). Usa uma imagem 16x16 em cache (1 operacao em vez de ate 256).
 void desenharPre(ui.Canvas c, ui.Rect r, String nome) {
   if (!preArtes.containsKey(nome)) return;
-  c.save();
-  c.translate(r.left, r.top);
-  c.scale(r.width / 16, r.height / 16);
-  c.drawPicture(_figura(nome));
-  c.restore();
+  final im = _rasters.putIfAbsent(nome, () => _figura(nome).toImageSync(16, 16));
+  c.drawImageRect(im, const ui.Rect.fromLTWH(0, 0, 16, 16), r, _tinta);
 }
 
 /// PNG 16x16 do sprite (para a engine e para fotos de perfil).

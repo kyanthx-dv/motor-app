@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -34,6 +35,10 @@ class JogarTela extends StatefulWidget {
 
 class _JogarTelaState extends State<JogarTela> {
   late final WebViewController _web;
+  bool _desempenho = false; // caixa com FPS e tempos num canto
+  Map<String, dynamic> _info = {};
+  Timer? _poll;
+  final _log = <String>[]; // console do jogo (ultimas 150 linhas)
 
   @override
   void initState() {
@@ -45,6 +50,8 @@ class _JogarTelaState extends State<JogarTela> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF141414))
       ..setOnConsoleMessage((m) {
+        _log.add('${m.level.name.toUpperCase()}  ${m.message}');
+        if (_log.length > 150) _log.removeAt(0);
         if (m.level == JavaScriptLogLevel.error) Avisos.add(Nivel.erro, 'Jogo: ${m.message}');
       })
       ..addJavaScriptChannel('Sair', onMessageReceived: (_) {
@@ -100,13 +107,127 @@ class _JogarTelaState extends State<JogarTela> {
     });
   }
 
+  void _ligarDesempenho(bool v) {
+    _desempenho = v;
+    _poll?.cancel();
+    if (v) {
+      _poll = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+        try {
+          var r = (await _web.runJavaScriptReturningResult('window.dbgInfo ? window.dbgInfo() : "{}"')).toString();
+          if (r.startsWith('"')) r = jsonDecode(r) as String; // Android devolve o texto entre aspas
+          final m = jsonDecode(r);
+          if (mounted && m is Map<String, dynamic>) setState(() => _info = m);
+        } catch (_) {/* o jogo ainda esta abrindo: tenta de novo */}
+      });
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _abrirDepuracao() => showDialog<void>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setD) => Dialog(
+            backgroundColor: Cores.cartao,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  height: 52,
+                  color: Cores.cartao2,
+                  child: Row(children: [
+                    const SizedBox(width: 18),
+                    const Expanded(child: Text('Depuração', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+                    IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
+                  ]),
+                ),
+                SwitchListTile(
+                  dense: true,
+                  title: const Text('Desempenho'),
+                  subtitle: const Text('Mostra FPS, tempo de quadro e contagens num canto.', style: TextStyle(fontSize: 12, color: Cores.texto2)),
+                  value: _desempenho,
+                  onChanged: (v) {
+                    _ligarDesempenho(v);
+                    setD(() {});
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+                  child: Row(children: [
+                    const Expanded(child: Text('CONSOLE DO JOGO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Cores.texto2))),
+                    TextButton(onPressed: () => Clipboard.setData(ClipboardData(text: _log.join('\n'))), child: const Text('Copiar')),
+                    TextButton(onPressed: () => setD(_log.clear), child: const Text('Limpar')),
+                  ]),
+                ),
+                Flexible(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.all(10),
+                    constraints: const BoxConstraints(minHeight: 80),
+                    decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12)),
+                    child: SingleChildScrollView(
+                      reverse: true,
+                      child: SelectableText(_log.isEmpty ? 'Sem mensagens.' : _log.join('\n'), style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace')),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
+
+  Widget _redondo(IconData i, VoidCallback f) => Toque(
+        aoTocar: f,
+        child: Container(width: 44, height: 44, decoration: const BoxDecoration(color: Color(0xB3141414), shape: BoxShape.circle), child: Icon(i, size: 22, color: Colors.white)),
+      );
+
   @override
   void dispose() {
+    _poll?.cancel();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(backgroundColor: const Color(0xFF141414), body: WebViewWidget(controller: _web));
+  Widget build(BuildContext context) {
+    String n(String k) => '${_info[k] ?? '-'}';
+    return Scaffold(
+      backgroundColor: const Color(0xFF141414),
+      body: Stack(children: [
+        Positioned.fill(child: WebViewWidget(controller: _web)),
+        SafeArea(
+          child: Stack(children: [
+            Positioned(
+              right: 10,
+              top: 8,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                _redondo(Icons.bug_report_outlined, _abrirDepuracao),
+                const SizedBox(width: 8),
+                _redondo(Icons.close_rounded, () => Navigator.of(context).pop()),
+              ]),
+            ),
+            if (_desempenho)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 8,
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xCC000000), borderRadius: BorderRadius.circular(10)),
+                      child: Text('FPS ${n('fps')}  ·  ${n('ms')} ms  ·  pior ${n('pior')} ms\nobjetos ${n('ent')}  ·  corpos ${n('corpos')}  ·  mem ${n('mem')} MB', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.white, fontFamily: 'monospace', height: 1.35)),
+                    ),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ]),
+    );
+  }
 }
