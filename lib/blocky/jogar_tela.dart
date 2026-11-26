@@ -15,6 +15,9 @@ import 'projetos.dart';
 import 'servidor.dart';
 import 'widgets.dart';
 
+/// Renderizador escolhido na Depuracao: 'canvas' (padrao) ou 'webgl' (experimental, usa a placa de video; volta ao canvas se nao der).
+String _renderPref = 'canvas';
+
 /// Roda um projeto do editor de celular com a engine real (jogar.html do motor), em tela cheia.
 Future<void> executar(BuildContext context, Projeto p, {Cena? daCena}) {
   if (p.cenas.isEmpty) {
@@ -98,6 +101,7 @@ class _JogarTelaState extends State<JogarTela> {
       }
     }
     return jsonEncode({
+      'render': _renderPref,
       'imagens': imagens,
       'projeto': json,
       'paleta': [
@@ -173,6 +177,23 @@ class _JogarTelaState extends State<JogarTela> {
                       ),
                     ),
                     const Padding(padding: EdgeInsets.only(top: 4), child: Text('Menos pixels = mais FPS em celular fraco.', style: TextStyle(fontSize: 12, color: Cores.texto2))),
+                    const SizedBox(height: 10),
+                    const Text('Renderizador', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: const [ButtonSegment(value: 'canvas', label: Text('Canvas')), ButtonSegment(value: 'webgl', label: Text('WebGL (teste)'))],
+                        selected: {_renderPref},
+                        onSelectionChanged: (s) {
+                          _renderPref = s.first;
+                          _web.reload(); // reabre o jogo com o renderizador escolhido
+                          setD(() {});
+                        },
+                      ),
+                    ),
+                    const Padding(padding: EdgeInsets.only(top: 4), child: Text('WebGL usa a placa de vídeo. Compare o FPS e veja o campo "canvas" na caixa de desempenho.', style: TextStyle(fontSize: 12, color: Cores.texto2))),
                   ]),
                 ),
                 Padding(
@@ -242,7 +263,7 @@ class _JogarTelaState extends State<JogarTela> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(color: const Color(0xCC000000), borderRadius: BorderRadius.circular(10)),
-                      child: Text('FPS ${n('fps')}  ·  ${n('ms')} ms  ·  pior ${n('pior')} ms\nobjetos ${n('ent')}  ·  corpos ${n('corpos')}  ·  mem ${n('mem')} MB\ncanvas ${n('res')}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.white, fontFamily: 'monospace', height: 1.35)),
+                      child: Text('FPS ${n('fps')}  ·  ${n('ms')} ms  ·  pior ${n('pior')} ms\nobjetos ${n('ent')}  ·  corpos ${n('corpos')}  ·  mem ${n('mem')} MB\ncanvas ${n('res')} · ${n('render')}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.white, fontFamily: 'monospace', height: 1.35)),
                     ),
                   ),
                 ),
