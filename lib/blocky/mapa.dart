@@ -148,7 +148,9 @@ class _CenaTelaState extends State<CenaTela> {
   int _sel = 0;
   double _altPainel = 210; // altura do painel (puxavel)
   static const _alturas = [52.0, 210.0, 400.0];
-  bool _painelTam = false; // painel de tamanho/posicao aberto
+  bool _painelTam = false; // modo redimensionar: painel de tamanho/posicao + alcas no objeto
+  bool _trava = false; // manter a proporcao ao esticar
+  double _razao = 1; // largura/altura no inicio do gesto (para a trava)
 
   // arrastar o objeto selecionado para outra celula
   bool _movendo = false;
@@ -592,9 +594,11 @@ class _CenaTelaState extends State<CenaTela> {
       case 'w':
         if (tile) return;
         w = (w + d).clamp(1, c.largura - x).toInt();
+        if (_trava) h = (o.h * w / o.w).round().clamp(1, c.altura - y).toInt();
       case 'h':
         if (tile) return;
         h = (h + d).clamp(1, c.altura - y).toInt();
+        if (_trava) w = (o.w * h / o.h).round().clamp(1, c.largura - x).toInt();
       case 'x':
         x = (x + d).clamp(0, c.largura - w).toInt();
       case 'y':
@@ -719,12 +723,13 @@ class _CenaTelaState extends State<CenaTela> {
     _redim = null;
     _visitadas.clear();
     final o = _so;
-    if (d.pointerCount == 1 && o != null && !_ehTile(o)) {
+    if (d.pointerCount == 1 && o != null && _painelTam && !_ehTile(o)) {
       // dedo numa alca do objeto selecionado: redimensiona arrastando
       final tela = _retaTela(o);
       for (final h in _alcasDe(tela, math.min(tela.width, tela.height) >= 64)) {
         if ((h.$2 - _baixo).distance <= 26) {
           _redim = h.$1;
+          _razao = o.w / o.h;
           return;
         }
       }
@@ -785,6 +790,26 @@ class _CenaTelaState extends State<CenaTela> {
       if (id.contains('l')) l = math.min(cel.$1, r);
       if (id.contains('t')) t = math.max(cel.$2, b);
       if (id.contains('b')) b = math.min(cel.$2, t);
+      if (_trava && id.length == 2) {
+        // canto com proporcao travada: o lado maior manda e o canto oposto fica parado
+        var w = r - l + 1, h = t - b + 1;
+        if (w / h > _razao) {
+          h = math.max(1, (w / _razao).round());
+        } else {
+          w = math.max(1, (h * _razao).round());
+        }
+        if (id.contains('r')) {
+          r = l + w - 1;
+        } else {
+          l = r - w + 1;
+        }
+        if (id.contains('t')) {
+          t = b + h - 1;
+        } else {
+          b = t - h + 1;
+        }
+        if (l < 0 || b < 0 || r >= c.largura || t >= c.altura) return;
+      }
       if (l != o.x || r != o.x + o.w - 1 || b != o.y || t != o.y + o.h - 1) {
         _marcar();
         o.x = l;
@@ -970,7 +995,7 @@ class _CenaTelaState extends State<CenaTela> {
                 ),
                 if (_painelTam && _so != null)
                   Positioned(
-                    left: 70,
+                    left: 12,
                     right: 12,
                     bottom: 10,
                     child: ValueListenableBuilder<int>(
@@ -979,22 +1004,62 @@ class _CenaTelaState extends State<CenaTela> {
                         final o = _so;
                         if (o == null) return const SizedBox.shrink();
                         final dx = _movendo ? (_destino?.$1 ?? o.x) : o.x, dy = _movendo ? (_destino?.$2 ?? o.y) : o.y;
-                        Widget passo(String rot, String campo, int v) => Expanded(
-                              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                Text(rot, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Cores.texto2)),
-                                const SizedBox(width: 2),
-                                _mini(Icons.remove_rounded, () => _ajTam(campo, -1)),
-                                SizedBox(width: 26, child: Text('$v', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
-                                _mini(Icons.add_rounded, () => _ajTam(campo, 1)),
-                              ]),
+                        Widget caixa(String rot, String campo, int v) => Expanded(
+                              child: Container(
+                                height: 38,
+                                margin: const EdgeInsets.only(left: 6),
+                                decoration: BoxDecoration(color: Cores.cartao2, borderRadius: BorderRadius.circular(12)),
+                                child: Row(children: [
+                                  const SizedBox(width: 8),
+                                  Text(rot, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Cores.texto2)),
+                                  const Spacer(),
+                                  _mini(Icons.remove_rounded, () => _ajTam(campo, -1)),
+                                  SizedBox(width: 24, child: Text('$v', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
+                                  _mini(Icons.add_rounded, () => _ajTam(campo, 1)),
+                                  const SizedBox(width: 4),
+                                ]),
+                              ),
+                            );
+                        Widget linha(String titulo, List<Widget> filhos) => Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Row(children: [SizedBox(width: 74, child: Text(titulo, style: const TextStyle(fontSize: 13))), ...filhos]),
                             );
                         return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-                          decoration: BoxDecoration(color: Cores.cartao.withAlpha(240), borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.fromLTRB(12, 8, 8, 10),
+                          decoration: BoxDecoration(color: Cores.cartao.withAlpha(245), borderRadius: BorderRadius.circular(18)),
                           child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Row(children: [passo('W', 'w', o.w), passo('H', 'h', o.h)]),
-                            const SizedBox(height: 2),
-                            Row(children: [passo('X', 'x', dx), passo('Y', 'y', dy)]),
+                            Row(children: [
+                              const Icon(Icons.open_in_full_rounded, size: 17, color: Cores.texto2),
+                              const SizedBox(width: 8),
+                              const Expanded(child: Text('Redimensionar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+                              _mini(Icons.close_rounded, () => setState(() => _painelTam = false)),
+                            ]),
+                            linha('Posição', [caixa('X', 'x', dx), caixa('Y', 'y', dy)]),
+                            linha('Tamanho', [caixa('L', 'w', o.w), caixa('A', 'h', o.h)]),
+                            linha('Proporção', [
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 6),
+                                    child: Toque(
+                                      aoTocar: () => setState(() => _trava = !_trava),
+                                      child: Container(
+                                        height: 38,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                                        decoration: BoxDecoration(color: _trava ? azulEditor : Cores.cartao2, borderRadius: BorderRadius.circular(12)),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          Icon(_trava ? Icons.lock_rounded : Icons.lock_open_rounded, size: 18, color: _trava ? Colors.white : Cores.texto2),
+                                          const SizedBox(width: 6),
+                                          Text(_trava ? 'Travada' : 'Livre', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _trava ? Colors.white : null)),
+                                        ]),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ]),
+                            const Padding(padding: EdgeInsets.only(top: 6), child: Align(alignment: Alignment.centerLeft, child: Text('Arraste as alças brancas no objeto ou use os botões.', style: TextStyle(fontSize: 11, color: Cores.texto2)))),
                           ]),
                         );
                       },
@@ -1248,7 +1313,7 @@ class _CenaPainter extends CustomPainter {
             ..color = cor2
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2.5 / s._esc);
-      if (dest == null && !s._ehTile(o) && !s._arrMarc) {
+      if (dest == null && s._painelTam && !s._ehTile(o) && !s._arrMarc) {
         // alcas de redimensionar (tamanho constante na tela)
         final tela = s._retaTela(o);
         final preench = Paint()..color = Colors.white;
